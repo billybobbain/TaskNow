@@ -9,8 +9,6 @@
 >How long will it take you to complete this subtask (in minutes)?
 >Name a small reward for completing the subtask.
 
-<img width="1075" height="2393" alt="Screenshot_20251029-185553" src="https://github.com/user-attachments/assets/20333244-a27d-4c4e-9388-e1ebc50bab91" /> 
-
 ## Update 1
 >I want this app to use persistent storage in sqlite.
 
@@ -48,3 +46,6 @@ The app dynamically switching themes based on user selection
 Would you like me to add this functionality so users can change themes from a settings menu in the app?
 ## Update 10
 >ah, I forgot. Yes, can you add a settings menu to change themes?
+
+
+<img width="1075" height="2393" alt="Screenshot_20251029-185553" src="https://github.com/user-attachments/assets/20333244-a27d-4c4e-9388-e1ebc50bab91" /> 
