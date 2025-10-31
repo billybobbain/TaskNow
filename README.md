@@ -111,8 +111,13 @@ import androidx.compose.runtime.setValue`
 ## Update 8
 >I had to add those imports you just suggested to Theme.kt to get it to compile correctly. They weren't for MainActivity.kt. Or was Theme.kt embedded in MainActivity.kt. I am kinda new to Kotlin.
 
+You're absolutely right! I apologize for the confusion. Let me clarify:
+In the artifact code I provided, Theme.kt is embedded within the same file as MainActivity.kt - it's all one continuous code file with sections marked by comments like // ===== Theme.kt =====.
+However, when you actually build the app in Android Studio, you should create separate files:
+
 ## Update 9
 > How do I invoke the theme editor from the app?
+
 The theme isn't editable from within the app at runtime - it's set at compile time in the code. To change the theme, you need to edit the color values in the Theme.kt file and rebuild the app.
 If you want users to be able to change themes from within the app (like a settings screen where they can pick different color schemes), I can add that feature! It would involve:
 
@@ -121,9 +126,28 @@ Storing the theme preference in the database
 Multiple pre-defined color schemes to choose from
 The app dynamically switching themes based on user selection
 
-Would you like me to add this functionality so users can change themes from a settings menu in the app?
+**Would you like me to add this functionality so users can change themes from a settings menu in the app?**
 ## Update 10
 >ah, I forgot. Yes, can you add a settings menu to change themes?
 
+Perfect! I've added a complete settings system to your app. Here's what's new:
+New Features:
+
+⚙️ Settings Button - Added to the top-right of the app bar
+Settings Screen - Beautiful interface to select themes
+6 Color Themes - Purple, Blue, Green, Orange, Pink, and Teal
+Persistent Theme - Your theme choice is saved to the database and persists between app sessions
+Live Updates - Theme changes apply immediately across the entire app
+
+How to use:
+
+Tap the ⚙️ icon in the top-right corner
+Select your preferred theme from the list
+The app will immediately update with your new color scheme
+Your choice is automatically saved
+
+Important Note:
+The database version has been updated from 1 to 2. I've added .fallbackToDestructiveMigration() which means if you already have the app installed, it will clear your existing data when you update. If you want to preserve existing data, you'll need to create a proper migration, but for development this is fine!
+Each theme has both light and dark mode variants that automatically follow your system settings. Try them out and pick your favorite! 🎨
 
 <img width="1075" height="2393" alt="Screenshot_20251029-185553" src="https://github.com/user-attachments/assets/20333244-a27d-4c4e-9388-e1ebc50bab91" /> 
