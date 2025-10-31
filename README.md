@@ -139,14 +139,14 @@ Settings Screen - Beautiful interface to select themes
 Persistent Theme - Your theme choice is saved to the database and persists between app sessions
 Live Updates - Theme changes apply immediately across the entire app
 
-How to use:
+**How to use:**
 
 Tap the ⚙️ icon in the top-right corner
 Select your preferred theme from the list
 The app will immediately update with your new color scheme
 Your choice is automatically saved
 
-Important Note:
+**Important Note:**
 The database version has been updated from 1 to 2. I've added .fallbackToDestructiveMigration() which means if you already have the app installed, it will clear your existing data when you update. If you want to preserve existing data, you'll need to create a proper migration, but for development this is fine!
 Each theme has both light and dark mode variants that automatically follow your system settings. Try them out and pick your favorite! 🎨
 
