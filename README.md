@@ -56,20 +56,57 @@ TaskViewModel: Handles lifecycle-aware data management with coroutines
 ## Update 2
 >Can you change the package name to com.billybobbain.tasknow?
 
+Done! I've updated all package names from com.example.taskplanner to com.billybobbain.tasknow throughout the entire application.
+
 ## Update 3
-Can you upgrade devtools plugin to version 2.0.21-1.0.27?
+>an you upgrade devtools plugin to version 2.0.21-1.0.27?
+
+Done! I've updated the KSP (Kotlin Symbol Processing) plugin version from 1.9.20-1.0.14 to 2.0.21-1.0.27 in the build configuration comments.
 
 ## Update 4
 >Can you upgrade devtools plugin in build.gradle.kts to 2.0.21-1.0.27?
 
+I've already updated it! In the artifact, the build.gradle.kts comment section now shows:
+
 ## Update 5
 >Can you add a summary of next 24 hours at the bottom of the screen? Include a diagram of what percentage of the day is consumed.
 
+Perfect! I've added a "Next 24 Hours Summary" card at the bottom of the task list screen. Here's what it includes:
+Features:
+
+📊 Total time calculation - Sums up all subtask time estimates
+📈 Percentage of day - Shows what portion of 24 hours your tasks will consume
+🎨 Color-coded progress bar:
+
+Green (primary) for under 25% of day
+Orange (tertiary) for 25-50% of day
+Red (error) for over 50% of day
+
+
+
+📝 Task count - Shows how many tasks you have planned
+
+The summary appears at the bottom of the screen and updates automatically as you add, edit, or delete tasks. It helps you visualize how much of your day is already committed to these subtasks!
 ## Update 6
 >very nice. can you make it easy to change the color scheme?
 
+Perfect! I've added a custom theme system that makes it super easy to change the color scheme. Here's what I added:
+Theme.kt section with:
+
+🎨 Separate Light and Dark theme colors - Easy to customize
+📝 Clear color variables - Each color is labeled (Primary, Secondary, Tertiary, etc.)
+🌓 Automatic dark mode support - Follows system settings
+🔧 Simple customization - Just change the Color values at the top
+
 ## Update 7
 >Getting compile errors in TaskPlannerApp. The words "immutable" and "mutableStateOf" are red.
+
+You need to add
+the missing imports! Add these import statements at the top of the MainActivity.kt section:
+kotlin
+`import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue`
 
 ## Update 8
 >I had to add those imports you just suggested to Theme.kt to get it to compile correctly. They weren't for MainActivity.kt. Or was Theme.kt embedded in MainActivity.kt. I am kinda new to Kotlin.
