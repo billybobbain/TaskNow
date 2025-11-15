@@ -406,6 +406,8 @@ fun TaskListScreen(
                 items(displayTasks) { task ->
                     TaskCard(
                         task = task,
+                        locations = locations,
+                        viewModel = viewModel,
                         onClick = { onTaskClick(task) },
                         onDelete = { onDeleteTask(task) }
                     )
@@ -419,7 +421,44 @@ fun TaskListScreen(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TaskCard(task: Task, onClick: () -> Unit, onDelete: () -> Unit) {
+fun TaskCard(
+    task: Task,
+    locations: List<Location>,
+    viewModel: TaskViewModel,
+    onClick: () -> Unit,
+    onDelete: () -> Unit
+) {
+    val context = LocalContext.current
+    val locationService = remember { LocationService(context) }
+
+    // Get location info for this task
+    val taskLocation = task.locationId?.let { locationId ->
+        locations.find { it.id == locationId }
+    }
+
+    // Calculate distance if location exists
+    var distanceText by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(taskLocation) {
+        if (taskLocation != null && locationService.hasLocationPermission()) {
+            val currentLoc = locationService.getCurrentLocation()
+            if (currentLoc != null) {
+                val distanceMeters = locationService.calculateDistance(
+                    currentLoc.latitude,
+                    currentLoc.longitude,
+                    taskLocation.latitude,
+                    taskLocation.longitude
+                )
+                val distanceMiles = distanceMeters * 0.000621371 // Convert meters to miles
+                distanceText = if (distanceMiles < 0.1) {
+                    "${(distanceMeters * 3.28084).toInt()} ft away"
+                } else {
+                    "%.1f mi away".format(distanceMiles)
+                }
+            }
+        }
+    }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         onClick = onClick,
@@ -440,7 +479,47 @@ fun TaskCard(task: Task, onClick: () -> Unit, onDelete: () -> Unit) {
                     Text("×", fontSize = 24.sp)
                 }
             }
+
             Spacer(modifier = Modifier.height(8.dp))
+
+            // Location info
+            if (taskLocation != null) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                ) {
+                    Card(
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.tertiaryContainer
+                        )
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                        ) {
+                            Text("📍", fontSize = 12.sp)
+                            Text(
+                                text = taskLocation.name,
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.onTertiaryContainer
+                            )
+                        }
+                    }
+
+                    if (distanceText != null) {
+                        Text(
+                            text = distanceText!!,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+
             Text(
                 text = "Next step: ${task.subtask}",
                 style = MaterialTheme.typography.bodyMedium,
