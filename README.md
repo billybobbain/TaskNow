@@ -1,4 +1,111 @@
-## A program written by Claude 4.5 as prompted by me via chat. 
+# TaskNow - Anti-Procrastination App
+
+## Latest Update - Location-Based Task Management (November 15, 2025)
+
+### Summary of Changes
+
+This update adds comprehensive location-based task filtering and management, allowing users to associate tasks with physical locations and filter tasks based on proximity to their current GPS position.
+
+### New Features
+
+#### 1. Location Management System
+- **Location Entity**: New database table for storing saved locations with GPS coordinates and custom proximity radius
+- **CRUD Operations**: Full create, read, update, delete functionality for locations
+- **Database Migration**: Updated from version 2 to version 3 to include Location entity
+
+#### 2. Interactive Map-Based Location Picker
+- **OSMDroid Integration**: Added OpenStreetMap support for visual location selection
+- **Long-Press Selection**: Users can long-press anywhere on the map to place a location marker
+- **"Use Current Location" Button**: One-tap GPS capture to instantly grab current position
+- **Visual Radius Display**: Blue circle overlay showing the proximity radius (50m - 2000m)
+- **Adjustable Radius**: Slider to customize proximity range for each location
+- **Real-time Feedback**: Toast messages for success/error states
+
+![Map Location Picker](screenshots/map_location_picker.png)
+*Screenshot: Interactive map interface for selecting locations*
+
+#### 3. Task-Location Association
+- **Optional Location Field**: Tasks can be assigned to saved locations during creation/editing
+- **Location Picker Dialog**: Clean interface showing all saved locations
+- **Clear Instructions**: Helpful messages guiding users to create locations via Settings
+
+![Task Location Assignment](screenshots/task_location_assignment.png)
+*Screenshot: Assigning a location to a task*
+
+#### 4. Location-Based Task Filtering
+- **Filter UI**: Card-based filter bar on main screen showing current filter status
+- **Three Filter Modes**:
+  - **All Tasks**: Show everything (default)
+  - **Near Me Now**: GPS-based filtering showing tasks within proximity of current location
+  - **By Location**: Filter by specific saved location
+- **Permission Handling**: Runtime location permission requests with clear error messages
+- **Filter Statistics**: Shows "X of Y tasks shown" when filter is active
+
+![Location Filter](screenshots/location_filter.png)
+*Screenshot: Filtering tasks by location*
+
+#### 5. Location Indicators on Task Cards
+- **Location Badge**: Colored pill showing 📍 icon + location name
+- **Distance Display**: Shows distance from current location in:
+  - Feet (if < 0.1 miles)
+  - Miles with 1 decimal precision (if ≥ 0.1 miles)
+- **Smart Display**: Only shows for tasks with assigned locations
+- **Auto-Update**: Distance recalculates based on GPS position
+
+![Task Card with Location](screenshots/task_card_location.png)
+*Screenshot: Task card showing location badge and distance*
+
+#### 6. Settings Integration
+- **Manage Locations Section**: Added to Settings screen
+- **Location Count Display**: Shows number of saved locations
+- **Easy Navigation**: One-tap access to full location management screen
+
+![Settings Screen](screenshots/settings_locations.png)
+*Screenshot: Settings screen with Manage Locations option*
+
+### Technical Implementation
+
+#### New Files
+- `Location.kt` - Location entity with GPS coordinates and radius
+- `LocationDao.kt` - Database access object for location operations
+- `LocationService.kt` - GPS service with Haversine distance calculation
+- `LocationRepository.kt` - Repository pattern for location data
+- `MapLocationPicker.kt` - Composable map-based location picker UI
+
+#### Modified Files
+- `Task.kt` - Added `locationId` field (nullable)
+- `TaskDatabase.kt` - Updated to version 3, added Location entity
+- `TaskViewModel.kt` - Added location filtering logic and state management
+- `MainActivity.kt` - Updated UI components for location features
+- `AndroidManifest.xml` - Added location and internet permissions
+- `build.gradle.kts` - Added OSMDroid dependency (v6.1.17)
+
+#### Key Technologies
+- **OSMDroid**: OpenStreetMap integration for map display and interaction
+- **Android Location Services**: GPS positioning and permission handling
+- **Haversine Formula**: Accurate distance calculation between GPS coordinates
+- **Jetpack Compose**: Reactive UI with state management
+- **Room Database**: SQLite persistence with migration support
+- **Kotlin Coroutines**: Asynchronous location fetching
+
+### Permissions Required
+- `ACCESS_FINE_LOCATION` - For precise GPS positioning
+- `ACCESS_COARSE_LOCATION` - Fallback location method
+- `INTERNET` - For downloading map tiles
+- `ACCESS_NETWORK_STATE` - Map tile network status
+- `WRITE_EXTERNAL_STORAGE` - Map tile caching (API ≤ 32)
+
+### User Experience Improvements
+- No manual coordinate entry required
+- Visual map interface for intuitive location selection
+- Real-time distance calculations
+- Clear permission request flow
+- Helpful error messages and guidance
+- Clean, uncluttered UI for tasks without locations
+
+---
+
+## A program written by Claude 4.5 as prompted by me via chat.
 
 ## Prompt 
 >I want an android application that takes a list of tasks and builds a plan for further editing. It should use the following questions to gather the data. What task are you currently procrastinating on?
