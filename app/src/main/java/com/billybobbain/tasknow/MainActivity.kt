@@ -1,9 +1,12 @@
 // ===== MainActivity.kt =====
 package com.billybobbain.tasknow
 
+import android.Manifest
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -17,6 +20,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -27,6 +31,14 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Initialize OSMDroid configuration
+        org.osmdroid.config.Configuration.getInstance().load(
+            this,
+            getSharedPreferences("osmdroid", MODE_PRIVATE)
+        )
+        org.osmdroid.config.Configuration.getInstance().userAgentValue = packageName
+
         setContent {
             val settings by taskViewModel.settings.collectAsState(initial = null)
             val themeName = settings?.themeName ?: "Purple"
@@ -75,6 +87,7 @@ fun TaskPlannerApp(viewModel: TaskViewModel) {
         when (currentScreen) {
             "list" -> TaskListScreen(
                 tasks = tasks,
+                viewModel = viewModel,
                 modifier = Modifier.padding(padding),
                 onTaskClick = { task ->
                     editingTask = task
@@ -82,11 +95,13 @@ fun TaskPlannerApp(viewModel: TaskViewModel) {
                 },
                 onDeleteTask = { task ->
                     viewModel.delete(task)
-                }
+                },
+                onManageLocations = { currentScreen = "locations" }
             )
             "form" -> TaskFormScreen(
                 modifier = Modifier.padding(padding),
                 existingTask = editingTask,
+                viewModel = viewModel,
                 onSave = { task ->
                     if (editingTask != null) {
                         viewModel.update(task)
@@ -106,6 +121,12 @@ fun TaskPlannerApp(viewModel: TaskViewModel) {
             "settings" -> SettingsScreen(
                 viewModel = viewModel,
                 modifier = Modifier.padding(padding),
+                onBack = { currentScreen = "list" },
+                onManageLocations = { currentScreen = "locations" }
+            )
+            "locations" -> LocationsScreen(
+                viewModel = viewModel,
+                modifier = Modifier.padding(padding),
                 onBack = { currentScreen = "list" }
             )
         }
@@ -116,10 +137,12 @@ fun TaskPlannerApp(viewModel: TaskViewModel) {
 fun SettingsScreen(
     viewModel: TaskViewModel,
     modifier: Modifier = Modifier,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onManageLocations: () -> Unit
 ) {
     val settings by viewModel.settings.collectAsState(initial = null)
     val currentTheme = settings?.themeName ?: "Purple"
+    val locations by viewModel.allLocations.collectAsState(initial = emptyList())
 
     val themes = listOf("Purple", "Blue", "Green", "Orange", "Pink", "Teal")
 
@@ -140,6 +163,42 @@ fun SettingsScreen(
             fontWeight = FontWeight.Bold
         )
 
+        // Locations Section
+        Text(
+            text = "Locations",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(top = 16.dp)
+        )
+
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            onClick = onManageLocations
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Manage Locations",
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Text(
+                        text = "${locations.size} location${if (locations.size != 1) "s" else ""} saved",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Text("→", fontSize = 20.sp)
+            }
+        }
+
+        // Theme Section
         Text(
             text = "Theme",
             style = MaterialTheme.typography.titleMedium,
@@ -199,18 +258,141 @@ fun ThemeOption(
 @Composable
 fun TaskListScreen(
     tasks: List<Task>,
+    viewModel: TaskViewModel,
     modifier: Modifier = Modifier,
     onTaskClick: (Task) -> Unit,
-    onDeleteTask: (Task) -> Unit
+    onDeleteTask: (Task) -> Unit,
+    onManageLocations: () -> Unit
 ) {
+    val context = LocalContext.current
+    val locations by viewModel.allLocations.collectAsState(initial = emptyList())
+    val filteredTasks by viewModel.filteredTasks.collectAsState()
+    val selectedFilter by viewModel.selectedLocationFilter.collectAsState()
+    val displayTasks = if (selectedFilter != null) filteredTasks else tasks
+
+    var showLocationFilter by remember { mutableStateOf(false) }
+    var showPermissionDeniedDialog by remember { mutableStateOf(false) }
+
+    val locationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        if (permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
+            permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true) {
+            viewModel.filterByCurrentLocation()
+        } else {
+            showPermissionDeniedDialog = true
+        }
+    }
+
     Column(modifier = modifier.fillMaxSize()) {
-        if (tasks.isEmpty()) {
+        // Location Filter Bar
+        if (locations.isNotEmpty()) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer
+                )
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = when (selectedFilter) {
+                                null -> "All tasks"
+                                "current" -> "Near me now"
+                                else -> locations.find { it.id == selectedFilter }?.name ?: "Filtered"
+                            },
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Bold
+                        )
+                        if (selectedFilter != null) {
+                            Text(
+                                text = "${displayTasks.size} of ${tasks.size} tasks shown",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
+                            )
+                        }
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        if (selectedFilter != null) {
+                            IconButton(onClick = { viewModel.clearLocationFilter() }) {
+                                Text("✕", fontSize = 18.sp)
+                            }
+                        }
+                        IconButton(onClick = { showLocationFilter = true }) {
+                            Text("\uD83D\uDCCD", fontSize = 18.sp)
+                        }
+                    }
+                }
+            }
+        }
+
+        if (showLocationFilter) {
+            LocationFilterDialog(
+                locations = locations,
+                selectedFilter = selectedFilter,
+                hasLocationPermission = viewModel.hasLocationPermission(),
+                onFilterSelected = { filter ->
+                    when (filter) {
+                        "all" -> {
+                            viewModel.clearLocationFilter()
+                            showLocationFilter = false
+                        }
+                        "current" -> {
+                            if (viewModel.hasLocationPermission()) {
+                                viewModel.filterByCurrentLocation()
+                                showLocationFilter = false
+                            } else {
+                                locationPermissionLauncher.launch(
+                                    arrayOf(
+                                        Manifest.permission.ACCESS_FINE_LOCATION,
+                                        Manifest.permission.ACCESS_COARSE_LOCATION
+                                    )
+                                )
+                                showLocationFilter = false
+                            }
+                        }
+                        else -> {
+                            viewModel.filterByLocation(filter)
+                            showLocationFilter = false
+                        }
+                    }
+                },
+                onManageLocations = {
+                    showLocationFilter = false
+                    onManageLocations()
+                },
+                onDismiss = { showLocationFilter = false }
+            )
+        }
+
+        if (showPermissionDeniedDialog) {
+            AlertDialog(
+                onDismissRequest = { showPermissionDeniedDialog = false },
+                title = { Text("Location Permission Required") },
+                text = { Text("To filter tasks by your current location, please grant location permission in your device settings.") },
+                confirmButton = {
+                    TextButton(onClick = { showPermissionDeniedDialog = false }) {
+                        Text("OK")
+                    }
+                }
+            )
+        }
+        if (displayTasks.isEmpty()) {
             Box(
                 modifier = Modifier.weight(1f).fillMaxWidth(),
                 contentAlignment = androidx.compose.ui.Alignment.Center
             ) {
                 Text(
-                    "No tasks yet.\nTap + to add a task!",
+                    if (tasks.isEmpty()) "No tasks yet.\nTap + to add a task!"
+                    else "No tasks match the selected location filter.",
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -221,7 +403,7 @@ fun TaskListScreen(
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                items(tasks) { task ->
+                items(displayTasks) { task ->
                     TaskCard(
                         task = task,
                         onClick = { onTaskClick(task) },
@@ -277,6 +459,7 @@ fun TaskCard(task: Task, onClick: () -> Unit, onDelete: () -> Unit) {
 fun TaskFormScreen(
     modifier: Modifier = Modifier,
     existingTask: Task?,
+    viewModel: TaskViewModel,
     onSave: (Task) -> Unit,
     onCancel: () -> Unit
 ) {
@@ -287,6 +470,10 @@ fun TaskFormScreen(
     var subtask by remember { mutableStateOf(existingTask?.subtask ?: "") }
     var timeEstimate by remember { mutableStateOf(existingTask?.timeEstimate ?: "") }
     var reward by remember { mutableStateOf(existingTask?.reward ?: "") }
+    var selectedLocationId by remember { mutableStateOf(existingTask?.locationId) }
+    var showLocationPicker by remember { mutableStateOf(false) }
+
+    val locations by viewModel.allLocations.collectAsState(initial = emptyList())
 
     Column(
         modifier = modifier
@@ -346,6 +533,43 @@ fun TaskFormScreen(
             onValueChange = { reward = it }
         )
 
+        // Location Picker
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Text(
+                text = "Location (optional)",
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+
+            OutlinedButton(
+                onClick = { showLocationPicker = true },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = locations.find { it.id == selectedLocationId }?.name ?: "No location selected"
+                )
+            }
+
+            if (selectedLocationId != null) {
+                TextButton(onClick = { selectedLocationId = null }) {
+                    Text("Clear location")
+                }
+            }
+        }
+
+        if (showLocationPicker) {
+            LocationPickerDialog(
+                locations = locations,
+                selectedLocationId = selectedLocationId,
+                onLocationSelected = { locationId ->
+                    selectedLocationId = locationId
+                    showLocationPicker = false
+                },
+                onDismiss = { showLocationPicker = false }
+            )
+        }
+
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -368,7 +592,8 @@ fun TaskFormScreen(
                                 benefits = benefits,
                                 subtask = subtask,
                                 timeEstimate = timeEstimate,
-                                reward = reward
+                                reward = reward,
+                                locationId = selectedLocationId
                             )
                         )
                     }
@@ -567,4 +792,444 @@ fun Next24HoursSummary(tasks: List<Task>) {
             }
         }
     }
+}
+
+// ===== Location Components =====
+
+@Composable
+fun LocationPickerDialog(
+    locations: List<Location>,
+    selectedLocationId: String?,
+    onLocationSelected: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Select Location") },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                if (locations.isEmpty()) {
+                    Text(
+                        "No locations yet. Go to Settings → Manage Locations to create one.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                } else {
+                    locations.forEach { location ->
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onLocationSelected(location.id) },
+                            colors = CardDefaults.cardColors(
+                                containerColor = if (location.id == selectedLocationId)
+                                    MaterialTheme.colorScheme.primaryContainer
+                                else
+                                    MaterialTheme.colorScheme.surface
+                            )
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(12.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = location.name,
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        fontWeight = if (location.id == selectedLocationId)
+                                            FontWeight.Bold else FontWeight.Normal
+                                    )
+                                    Text(
+                                        text = "Radius: ${location.radiusMeters.toInt()}m",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                if (location.id == selectedLocationId) {
+                                    Text("✓", fontSize = 20.sp)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Close")
+            }
+        }
+    )
+}
+
+
+@Composable
+fun LocationFilterDialog(
+    locations: List<Location>,
+    selectedFilter: String?,
+    hasLocationPermission: Boolean,
+    onFilterSelected: (String) -> Unit,
+    onManageLocations: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Filter Tasks by Location") },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // All tasks option
+                FilterOption(
+                    label = "All tasks",
+                    isSelected = selectedFilter == null,
+                    onClick = { onFilterSelected("all") }
+                )
+
+                // Near me option
+                Column {
+                    FilterOption(
+                        label = "\uD83D\uDCCD Near me now",
+                        isSelected = selectedFilter == "current",
+                        onClick = { onFilterSelected("current") }
+                    )
+                    if (!hasLocationPermission) {
+                        Text(
+                            text = "Requires location permission",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(start = 12.dp, top = 4.dp)
+                        )
+                    }
+                }
+
+                HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+
+                // Individual locations
+                if (locations.isEmpty()) {
+                    Text(
+                        "No saved locations yet.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                } else {
+                    locations.forEach { location ->
+                        FilterOption(
+                            label = location.name,
+                            isSelected = selectedFilter == location.id,
+                            onClick = { onFilterSelected(location.id) }
+                        )
+                    }
+                }
+
+                HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+
+                OutlinedButton(
+                    onClick = onManageLocations,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Manage Locations")
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Close")
+            }
+        }
+    )
+}
+
+@Composable
+fun FilterOption(
+    label: String,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isSelected)
+                MaterialTheme.colorScheme.primaryContainer
+            else
+                MaterialTheme.colorScheme.surface
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+            )
+            if (isSelected) {
+                Text("✓", fontSize = 20.sp)
+            }
+        }
+    }
+}
+
+@Composable
+fun LocationsScreen(
+    viewModel: TaskViewModel,
+    modifier: Modifier = Modifier,
+    onBack: () -> Unit
+) {
+    val locations by viewModel.allLocations.collectAsState(initial = emptyList())
+    var showAddLocationDialog by remember { mutableStateOf(false) }
+    var editingLocation by remember { mutableStateOf<Location?>(null) }
+
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+        ) {
+            TextButton(onClick = onBack) {
+                Text("← Back")
+            }
+
+            Button(onClick = {
+                editingLocation = null
+                showAddLocationDialog = true
+            }) {
+                Text("+ Add Location")
+            }
+        }
+
+        Text(
+            text = "Manage Locations",
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold
+        )
+
+        if (locations.isEmpty()) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = androidx.compose.ui.Alignment.Center
+            ) {
+                Text(
+                    "No locations yet.\nTap 'Add Location' to create one.",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        } else {
+            LazyColumn(
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                items(locations) { location ->
+                    LocationCard(
+                        location = location,
+                        onEdit = {
+                            editingLocation = location
+                            showAddLocationDialog = true
+                        },
+                        onDelete = { viewModel.deleteLocation(location) }
+                    )
+                }
+            }
+        }
+    }
+
+    if (showAddLocationDialog) {
+        MapLocationPickerDialog(
+            existingLocation = editingLocation,
+            viewModel = viewModel,
+            onSave = { location ->
+                if (editingLocation != null) {
+                    viewModel.updateLocation(location)
+                } else {
+                    viewModel.insertLocation(location)
+                }
+                showAddLocationDialog = false
+                editingLocation = null
+            },
+            onDismiss = {
+                showAddLocationDialog = false
+                editingLocation = null
+            }
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun LocationCard(
+    location: Location,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = location.name,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+                Row {
+                    IconButton(onClick = onEdit) {
+                        Text("✎", fontSize = 20.sp)
+                    }
+                    IconButton(onClick = onDelete) {
+                        Text("🗑", fontSize = 20.sp)
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                InfoChip("Lat: %.4f".format(location.latitude))
+                InfoChip("Lon: %.4f".format(location.longitude))
+            }
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            InfoChip("Radius: ${location.radiusMeters.toInt()}m")
+        }
+    }
+}
+
+@Composable
+fun InfoChip(text: String) {
+    Card(
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
+    ) {
+        Text(
+            text = text,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            style = MaterialTheme.typography.bodySmall
+        )
+    }
+}
+
+@Composable
+fun AddLocationDialog(
+    existingLocation: Location?,
+    onSave: (Location) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var name by remember { mutableStateOf(existingLocation?.name ?: "") }
+    var latitude by remember { mutableStateOf(existingLocation?.latitude?.toString() ?: "") }
+    var longitude by remember { mutableStateOf(existingLocation?.longitude?.toString() ?: "") }
+    var radius by remember { mutableStateOf(existingLocation?.radiusMeters?.toInt()?.toString() ?: "500") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(if (existingLocation != null) "Edit Location" else "Add Location") },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .padding(vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("Location Name") },
+                    placeholder = { Text("e.g., Home, Office, Gym") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                OutlinedTextField(
+                    value = latitude,
+                    onValueChange = { latitude = it },
+                    label = { Text("Latitude") },
+                    placeholder = { Text("e.g., 40.7128") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                OutlinedTextField(
+                    value = longitude,
+                    onValueChange = { longitude = it },
+                    label = { Text("Longitude") },
+                    placeholder = { Text("e.g., -74.0060") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                OutlinedTextField(
+                    value = radius,
+                    onValueChange = { radius = it },
+                    label = { Text("Radius (meters)") },
+                    placeholder = { Text("e.g., 500") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Text(
+                    text = "Tip: Use a maps app to find GPS coordinates. Long-press on a location to see its latitude and longitude.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    val lat = latitude.toDoubleOrNull()
+                    val lon = longitude.toDoubleOrNull()
+                    val rad = radius.toFloatOrNull()
+
+                    if (name.isNotBlank() && lat != null && lon != null && rad != null) {
+                        onSave(
+                            Location(
+                                id = existingLocation?.id ?: java.util.UUID.randomUUID().toString(),
+                                name = name,
+                                latitude = lat,
+                                longitude = lon,
+                                radiusMeters = rad
+                            )
+                        )
+                    }
+                },
+                enabled = name.isNotBlank() &&
+                        latitude.toDoubleOrNull() != null &&
+                        longitude.toDoubleOrNull() != null &&
+                        radius.toFloatOrNull() != null
+            ) {
+                Text("Save")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
 }

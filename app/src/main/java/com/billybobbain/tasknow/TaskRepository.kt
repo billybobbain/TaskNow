@@ -30,3 +30,23 @@ class SettingsRepository(private val settingsDao: SettingsDao) {
         settingsDao.saveSettings(settings)
     }
 }
+
+class LocationRepository(private val locationDao: LocationDao) {
+    val allLocations: Flow<List<Location>> = locationDao.getAllLocations()
+
+    suspend fun insert(location: Location) {
+        locationDao.insertLocation(location)
+    }
+
+    suspend fun update(location: Location) {
+        locationDao.updateLocation(location)
+    }
+
+    suspend fun delete(location: Location) {
+        locationDao.deleteLocation(location)
+    }
+
+    suspend fun getLocationById(id: String): Location? {
+        return locationDao.getLocationById(id)
+    }
+}
