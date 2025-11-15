@@ -13,5 +13,6 @@ data class Task(
     val benefits: String,
     val subtask: String,
     val timeEstimate: String,
-    val reward: String
+    val reward: String,
+    val locationId: String? = null // Reference to saved location, null if no location
 )
