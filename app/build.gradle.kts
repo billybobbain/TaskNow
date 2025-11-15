@@ -49,6 +49,9 @@ dependencies {
     implementation("androidx.room:room-ktx:$room_version")
     ksp("androidx.room:room-compiler:$room_version")
 
+    // OSMDroid for maps
+    implementation("org.osmdroid:osmdroid-android:6.1.17")
+
     // Existing compose dependencies...
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
