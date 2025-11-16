@@ -25,7 +25,6 @@ import org.osmdroid.views.overlay.Marker
 @Composable
 fun MapLocationPickerDialog(
     existingLocation: Location?,
-    viewModel: TaskViewModel,
     onSave: (Location) -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -52,7 +51,7 @@ fun MapLocationPickerDialog(
         )
     }
 
-    AlertDialog(
+    BasicAlertDialog(
         onDismissRequest = onDismiss,
         modifier = Modifier.fillMaxSize(0.95f)
     ) {
