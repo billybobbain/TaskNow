@@ -1,6 +1,116 @@
 # TaskNow - Anti-Procrastination App
 
-## Latest Update - Location-Based Task Management (November 15, 2025)
+## Latest Update - Multi-Step Subtasks & Repeating Tasks (November 16, 2025)
+
+### Summary of Changes
+
+This update transforms the single-subtask system into a comprehensive multi-step workflow with repeatable task templates. Users can now break down tasks into multiple sequential steps, track progress with visual indicators, and automatically reset tasks for recurring activities like daily workouts.
+
+### New Features
+
+#### 1. Multi-Step Subtask System
+- **Subtask Entity**: New database table for storing multiple subtasks per task with completion tracking
+- **Sequential Workflow**: Tasks can have unlimited subtasks that users complete in order
+- **Progress Tracking**: Visual progress bars and completion counters (X/Y completed)
+- **Database Migration**: Updated from version 4 to version 5 to support repeating tasks
+
+![Subtask List](screenshots/subtask_list.png)
+*Screenshot: Task detail showing multiple subtasks with completion status*
+
+#### 2. Task Detail Screen Redesign
+- **All Subtasks Visible**: Complete list of subtasks with checkboxes and completion status
+- **Current Subtask Highlighting**: Next incomplete subtask gets special border and "👉 Current step" label
+- **Completion Indicators**:
+  - Completed subtasks show with strikethrough text
+  - Grayed out appearance for completed items
+  - Progress counter at the top (e.g., "3 / 5")
+- **Time & Reward Display**: Each subtask shows ⏱️ time estimate and 🎁 reward
+
+![Subtask Detail](screenshots/subtask_detail.png)
+*Screenshot: Task detail with highlighted current subtask*
+
+#### 3. Reward Celebration Dialog
+- **Immediate Feedback**: Appears instantly when completing a subtask
+- **Celebration UI**: "🎉 Subtask Complete!" title with task description
+- **Reward Display**: Shows the earned reward in a highlighted card
+- **Clean Dismissal**: Single "Awesome!" button to continue
+
+![Reward Dialog](screenshots/reward_dialog.png)
+*Screenshot: Reward celebration after completing a subtask*
+
+#### 4. Updated Task Cards
+- **Current Subtask Display**: Shows "Next: [subtask description]" instead of static text
+- **Progress Bar**: Linear progress indicator showing completion percentage
+- **Smart Counters**: Shows "X/Y" completion ratio
+- **Completion Message**: "All subtasks complete! ✓" when task is done
+- **Fallback Support**: Still displays old format for legacy tasks without subtasks
+
+![Task Card Progress](screenshots/task_card_progress.png)
+*Screenshot: Task card showing subtask progress*
+
+#### 5. Add Subtask Functionality
+- **"+ Add Another Subtask" Button**: Located at bottom of subtask list in task detail
+- **Quick Entry Dialog**: Simple form with description, time estimate, and reward fields
+- **Auto-Ordering**: New subtasks automatically added to end of sequence
+- **Validation**: All fields required before saving
+
+![Add Subtask](screenshots/add_subtask_dialog.png)
+*Screenshot: Dialog for adding new subtasks*
+
+#### 6. Uncomplete Subtasks
+- **Bidirectional Toggle**: Click any subtask checkbox to toggle completion on/off
+- **No Restrictions**: Can uncomplete previously completed subtasks
+- **No Dialog on Uncomplete**: Only shows reward dialog when completing (not uncompleting)
+- **Mistake Recovery**: Easy to fix accidental completions
+
+#### 7. Repeating Tasks
+- **Template System**: Tasks can be marked as "Repeating" during creation/editing
+- **Auto-Reset Behavior**: When last subtask completes, all subtasks automatically reset to incomplete
+- **Perfect for Routines**: Ideal for daily workouts, morning routines, recurring chores
+- **Visual Toggle**: Clear switch in task form with explanation: "Task will reset when all subtasks are complete"
+- **Seamless Flow**: Shows reward dialog, then resets task when dismissed
+
+![Repeating Task Toggle](screenshots/repeating_task_toggle.png)
+*Screenshot: Repeating task toggle in task creation form*
+
+#### 8. Updated 24-Hour Summary
+- **Incomplete Subtasks Only**: Now counts only incomplete subtasks (not all subtasks)
+- **Accurate Time Calculation**: Reflects actual remaining work
+- **Smart Task Count**: Shows "X tasks with incomplete subtasks" or "All subtasks complete!"
+- **Dynamic Updates**: Automatically recalculates as subtasks are completed
+
+### Technical Implementation
+
+#### New Files
+- `Subtask.kt` - Subtask entity with foreign key to Task, orderIndex, and completion tracking
+- `SubtaskDao.kt` - Database queries for subtask operations and completion tracking
+- `SubtaskRepository.kt` - Repository pattern for subtask CRUD operations
+
+#### Modified Files
+- `Task.kt` - Added `isRepeating` field for repeatable task templates
+- `TaskDatabase.kt` - Updated to version 5, added Subtask entity
+- `TaskViewModel.kt` - Added subtask operations and resetAllSubtasks logic
+- `TaskRepository.kt` - Added SubtaskRepository for subtask management
+- `MainActivity.kt` - Complete UI overhaul for subtask display, progress tracking, and repeating tasks
+
+#### Key Technologies
+- **Foreign Key Constraints**: Cascade delete ensures subtasks are removed with parent task
+- **Room Database**: SQLite persistence with migration support (version 4→5)
+- **Kotlin Flows**: Reactive UI updates when subtasks change
+- **State Management**: LaunchedEffect for async progress calculations
+- **Material Design 3**: Progress bars, checkboxes, and dialog components
+
+### User Experience Improvements
+- Clear visual hierarchy showing what to do next
+- Immediate positive reinforcement with reward dialogs
+- No need to recreate recurring tasks manually
+- Easy mistake recovery with uncomplete functionality
+- Progress visibility across all screens
+- Backwards compatible with existing single-subtask tasks
+
+---
+
+## Previous Update - Location-Based Task Management (November 15, 2025)
 
 ### Summary of Changes
 
