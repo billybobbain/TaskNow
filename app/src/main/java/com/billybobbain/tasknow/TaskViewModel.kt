@@ -14,6 +14,7 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
     private val taskRepository: TaskRepository
     private val settingsRepository: SettingsRepository
     private val locationRepository: LocationRepository
+    private val subtaskRepository: SubtaskRepository
     private val locationService: LocationService
 
     val allTasks: Flow<List<Task>>
@@ -33,6 +34,7 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
         taskRepository = TaskRepository(database.taskDao())
         settingsRepository = SettingsRepository(database.settingsDao())
         locationRepository = LocationRepository(database.locationDao())
+        subtaskRepository = SubtaskRepository(database.subtaskDao())
         locationService = LocationService(application)
 
         allTasks = taskRepository.allTasks
@@ -98,6 +100,37 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
 
     fun hasLocationPermission(): Boolean {
         return locationService.hasLocationPermission()
+    }
+
+    // Subtask operations
+    fun getSubtasksForTask(taskId: String): Flow<List<Subtask>> {
+        return subtaskRepository.getSubtasksForTask(taskId)
+    }
+
+    suspend fun getNextIncompleteSubtask(taskId: String): Subtask? {
+        return subtaskRepository.getNextIncompleteSubtask(taskId)
+    }
+
+    suspend fun getSubtaskProgress(taskId: String): Pair<Int, Int> {
+        val completed = subtaskRepository.getCompletedSubtaskCount(taskId)
+        val total = subtaskRepository.getSubtaskCount(taskId)
+        return Pair(completed, total)
+    }
+
+    fun insertSubtask(subtask: Subtask) = viewModelScope.launch {
+        subtaskRepository.insert(subtask)
+    }
+
+    fun updateSubtask(subtask: Subtask) = viewModelScope.launch {
+        subtaskRepository.update(subtask)
+    }
+
+    fun deleteSubtask(subtask: Subtask) = viewModelScope.launch {
+        subtaskRepository.delete(subtask)
+    }
+
+    fun completeSubtask(subtaskId: String) = viewModelScope.launch {
+        subtaskRepository.completeSubtask(subtaskId)
     }
 
     // Settings
