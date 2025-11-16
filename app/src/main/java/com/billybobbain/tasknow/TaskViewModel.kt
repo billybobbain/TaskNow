@@ -82,10 +82,6 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     // Filter operations
-    fun setLocationFilter(filter: String?) {
-        _selectedLocationFilter.value = filter
-    }
-
     fun filterByCurrentLocation() {
         _selectedLocationFilter.value = "current"
     }
@@ -107,16 +103,6 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
         return subtaskRepository.getSubtasksForTask(taskId)
     }
 
-    suspend fun getNextIncompleteSubtask(taskId: String): Subtask? {
-        return subtaskRepository.getNextIncompleteSubtask(taskId)
-    }
-
-    suspend fun getSubtaskProgress(taskId: String): Pair<Int, Int> {
-        val completed = subtaskRepository.getCompletedSubtaskCount(taskId)
-        val total = subtaskRepository.getSubtaskCount(taskId)
-        return Pair(completed, total)
-    }
-
     fun insertSubtask(subtask: Subtask) = viewModelScope.launch {
         subtaskRepository.insert(subtask)
     }
@@ -125,12 +111,12 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
         subtaskRepository.update(subtask)
     }
 
-    fun deleteSubtask(subtask: Subtask) = viewModelScope.launch {
-        subtaskRepository.delete(subtask)
-    }
-
     fun completeSubtask(subtaskId: String) = viewModelScope.launch {
         subtaskRepository.completeSubtask(subtaskId)
+    }
+
+    fun resetAllSubtasks(taskId: String) = viewModelScope.launch {
+        subtaskRepository.resetAllSubtasks(taskId)
     }
 
     // Settings

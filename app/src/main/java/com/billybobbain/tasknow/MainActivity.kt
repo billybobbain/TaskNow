@@ -14,9 +14,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -24,7 +21,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.draw.clip
+import java.util.Locale
 
 class MainActivity : ComponentActivity() {
     private val taskViewModel: TaskViewModel by viewModels()
@@ -278,7 +275,6 @@ fun TaskListScreen(
     onDeleteTask: (Task) -> Unit,
     onManageLocations: () -> Unit
 ) {
-    val context = LocalContext.current
     val locations by viewModel.allLocations.collectAsState(initial = emptyList())
     val filteredTasks by viewModel.filteredTasks.collectAsState()
     val selectedFilter by viewModel.selectedLocationFilter.collectAsState()
@@ -611,6 +607,7 @@ fun TaskFormScreen(
     var timeEstimate by remember { mutableStateOf(existingTask?.timeEstimate ?: "") }
     var reward by remember { mutableStateOf(existingTask?.reward ?: "") }
     var selectedLocationId by remember { mutableStateOf(existingTask?.locationId) }
+    var isRepeating by remember { mutableStateOf(existingTask?.isRepeating ?: false) }
     var showLocationPicker by remember { mutableStateOf(false) }
 
     val locations by viewModel.allLocations.collectAsState(initial = emptyList())
@@ -710,6 +707,30 @@ fun TaskFormScreen(
             )
         }
 
+        // Repeating Task Toggle
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Repeating Task",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "Task will reset when all subtasks are complete",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Switch(
+                checked = isRepeating,
+                onCheckedChange = { isRepeating = it }
+            )
+        }
+
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -733,7 +754,8 @@ fun TaskFormScreen(
                                 subtask = subtask,
                                 timeEstimate = timeEstimate,
                                 reward = reward,
-                                locationId = selectedLocationId
+                                locationId = selectedLocationId,
+                                isRepeating = isRepeating
                             )
                         )
                     }
@@ -857,9 +879,13 @@ fun TaskDetailScreen(
                             isNextIncomplete = isNextIncomplete,
                             onToggle = {
                                 if (!subtask.isCompleted) {
+                                    // Completing - show reward dialog
                                     completedSubtask = subtask
                                     showRewardDialog = true
                                     viewModel.completeSubtask(subtask.id)
+                                } else {
+                                    // Uncompleting - just toggle back
+                                    viewModel.updateSubtask(subtask.copy(isCompleted = false))
                                 }
                             }
                         )
@@ -886,6 +912,11 @@ fun TaskDetailScreen(
         RewardDialog(
             subtask = completedSubtask!!,
             onDismiss = {
+                // Check if all subtasks are complete and task is repeating
+                val allComplete = subtasks.all { it.isCompleted }
+                if (allComplete && task.isRepeating) {
+                    viewModel.resetAllSubtasks(task.id)
+                }
                 showRewardDialog = false
                 completedSubtask = null
             }
@@ -936,14 +967,13 @@ fun SubtaskRow(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable(enabled = !subtask.isCompleted) { onToggle() }
+                .clickable { onToggle() }
                 .padding(12.dp),
             verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
         ) {
             Checkbox(
                 checked = subtask.isCompleted,
-                onCheckedChange = { if (!subtask.isCompleted) onToggle() },
-                enabled = !subtask.isCompleted
+                onCheckedChange = { onToggle() }
             )
             Spacer(modifier = Modifier.width(8.dp))
             Column(modifier = Modifier.weight(1f)) {
@@ -1193,7 +1223,7 @@ fun Next24HoursSummary(tasks: List<Task>, viewModel: TaskViewModel) {
                     )
                     Text(
                         text = if (totalHours >= 1) {
-                            String.format("%.1fh", totalHours)
+                            String.format(Locale.US, "%.1fh", totalHours)
                         } else {
                             "${totalMinutes}m"
                         },
@@ -1209,7 +1239,7 @@ fun Next24HoursSummary(tasks: List<Task>, viewModel: TaskViewModel) {
                         color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
                     )
                     Text(
-                        text = String.format("%.1f%%", percentageOfDay),
+                        text = String.format(Locale.US, "%.1f%%", percentageOfDay),
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold
                     )
@@ -1508,7 +1538,6 @@ fun LocationsScreen(
     if (showAddLocationDialog) {
         MapLocationPickerDialog(
             existingLocation = editingLocation,
-            viewModel = viewModel,
             onSave = { location ->
                 if (editingLocation != null) {
                     viewModel.updateLocation(location)
@@ -1587,100 +1616,4 @@ fun InfoChip(text: String) {
             style = MaterialTheme.typography.bodySmall
         )
     }
-}
-
-@Composable
-fun AddLocationDialog(
-    existingLocation: Location?,
-    onSave: (Location) -> Unit,
-    onDismiss: () -> Unit
-) {
-    var name by remember { mutableStateOf(existingLocation?.name ?: "") }
-    var latitude by remember { mutableStateOf(existingLocation?.latitude?.toString() ?: "") }
-    var longitude by remember { mutableStateOf(existingLocation?.longitude?.toString() ?: "") }
-    var radius by remember { mutableStateOf(existingLocation?.radiusMeters?.toInt()?.toString() ?: "500") }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(if (existingLocation != null) "Edit Location" else "Add Location") },
-        text = {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .verticalScroll(rememberScrollState())
-                    .padding(vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = { name = it },
-                    label = { Text("Location Name") },
-                    placeholder = { Text("e.g., Home, Office, Gym") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                OutlinedTextField(
-                    value = latitude,
-                    onValueChange = { latitude = it },
-                    label = { Text("Latitude") },
-                    placeholder = { Text("e.g., 40.7128") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                OutlinedTextField(
-                    value = longitude,
-                    onValueChange = { longitude = it },
-                    label = { Text("Longitude") },
-                    placeholder = { Text("e.g., -74.0060") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                OutlinedTextField(
-                    value = radius,
-                    onValueChange = { radius = it },
-                    label = { Text("Radius (meters)") },
-                    placeholder = { Text("e.g., 500") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                Text(
-                    text = "Tip: Use a maps app to find GPS coordinates. Long-press on a location to see its latitude and longitude.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = {
-                    val lat = latitude.toDoubleOrNull()
-                    val lon = longitude.toDoubleOrNull()
-                    val rad = radius.toFloatOrNull()
-
-                    if (name.isNotBlank() && lat != null && lon != null && rad != null) {
-                        onSave(
-                            Location(
-                                id = existingLocation?.id ?: java.util.UUID.randomUUID().toString(),
-                                name = name,
-                                latitude = lat,
-                                longitude = lon,
-                                radiusMeters = rad
-                            )
-                        )
-                    }
-                },
-                enabled = name.isNotBlank() &&
-                        latitude.toDoubleOrNull() != null &&
-                        longitude.toDoubleOrNull() != null &&
-                        radius.toFloatOrNull() != null
-            ) {
-                Text("Save")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel")
-            }
-        }
-    )
 }
