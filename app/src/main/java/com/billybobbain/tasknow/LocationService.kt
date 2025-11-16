@@ -53,7 +53,7 @@ class LocationService(private val context: Context) {
 
                 // No location available
                 continuation.resume(null)
-            } catch (e: SecurityException) {
+            } catch (_: SecurityException) {
                 continuation.resume(null)
             }
         }
