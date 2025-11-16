@@ -1,5 +1,6 @@
 # TaskNow - Anti-Procrastination App
 
+
 ## Latest Update - Task Templates (November 16, 2025)
 
 ### Summary of Changes
