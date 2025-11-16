@@ -133,6 +133,10 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
         subtaskRepository.completeSubtask(subtaskId)
     }
 
+    fun resetAllSubtasks(taskId: String) = viewModelScope.launch {
+        subtaskRepository.resetAllSubtasks(taskId)
+    }
+
     // Settings
     fun saveTheme(themeName: String) = viewModelScope.launch {
         settingsRepository.saveSettings(Settings(themeName = themeName))

@@ -32,4 +32,7 @@ interface SubtaskDao {
 
     @Query("DELETE FROM subtasks WHERE taskId = :taskId")
     suspend fun deleteSubtasksForTask(taskId: String)
+
+    @Query("UPDATE subtasks SET isCompleted = 0 WHERE taskId = :taskId")
+    suspend fun resetAllSubtasks(taskId: String)
 }
