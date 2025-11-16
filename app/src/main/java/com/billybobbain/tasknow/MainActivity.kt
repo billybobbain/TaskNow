@@ -107,6 +107,19 @@ fun TaskPlannerApp(viewModel: TaskViewModel) {
                         viewModel.update(task)
                     } else {
                         viewModel.insert(task)
+                        // Create the first subtask for new tasks
+                        if (task.subtask.isNotBlank()) {
+                            viewModel.insertSubtask(
+                                Subtask(
+                                    taskId = task.id,
+                                    description = task.subtask,
+                                    timeEstimate = task.timeEstimate,
+                                    reward = task.reward,
+                                    isCompleted = false,
+                                    orderIndex = 0
+                                )
+                            )
+                        }
                     }
                     currentScreen = "list"
                 },
@@ -114,6 +127,7 @@ fun TaskPlannerApp(viewModel: TaskViewModel) {
             )
             "detail" -> TaskDetailScreen(
                 task = editingTask!!,
+                viewModel = viewModel,
                 modifier = Modifier.padding(padding),
                 onEdit = { currentScreen = "form" },
                 onBack = { currentScreen = "list" }
@@ -415,7 +429,7 @@ fun TaskListScreen(
             }
         }
 
-        Next24HoursSummary(tasks = tasks)
+        Next24HoursSummary(tasks = tasks, viewModel = viewModel)
     }
 }
 
@@ -435,6 +449,13 @@ fun TaskCard(
     val taskLocation = task.locationId?.let { locationId ->
         locations.find { it.id == locationId }
     }
+
+    // Get subtasks for this task
+    val subtasks by viewModel.getSubtasksForTask(task.id).collectAsState(initial = emptyList())
+    val nextSubtask = subtasks.firstOrNull { !it.isCompleted }
+    val completedCount = subtasks.count { it.isCompleted }
+    val totalCount = subtasks.size
+    val progress = if (totalCount > 0) completedCount.toFloat() / totalCount else 0f
 
     // Calculate distance if location exists
     var distanceText by remember { mutableStateOf<String?>(null) }
@@ -520,16 +541,56 @@ fun TaskCard(
                 Spacer(modifier = Modifier.height(8.dp))
             }
 
-            Text(
-                text = "Next step: ${task.subtask}",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.primary
-            )
-            Text(
-                text = "Time: ${task.timeEstimate} min",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            // Subtask progress
+            if (totalCount > 0) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = if (nextSubtask != null) "Next: ${nextSubtask.description}" else "All subtasks complete! ✓",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = if (nextSubtask != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.tertiary,
+                        fontWeight = if (nextSubtask == null) FontWeight.Bold else FontWeight.Normal,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Text(
+                        text = "$completedCount/$totalCount",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+
+                if (nextSubtask != null) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "⏱️ ${nextSubtask.timeEstimate} min",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+                LinearProgressIndicator(
+                    progress = { progress },
+                    modifier = Modifier.fillMaxWidth(),
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            } else {
+                // Fallback to old format if no subtasks (for existing tasks)
+                Text(
+                    text = "Next step: ${task.subtask}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    text = "Time: ${task.timeEstimate} min",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
     }
 }
@@ -713,10 +774,16 @@ fun QuestionField(
 @Composable
 fun TaskDetailScreen(
     task: Task,
+    viewModel: TaskViewModel,
     modifier: Modifier = Modifier,
     onEdit: () -> Unit,
     onBack: () -> Unit
 ) {
+    val subtasks by viewModel.getSubtasksForTask(task.id).collectAsState(initial = emptyList())
+    var showRewardDialog by remember { mutableStateOf(false) }
+    var completedSubtask by remember { mutableStateOf<Subtask?>(null) }
+    var showAddSubtaskDialog by remember { mutableStateOf(false) }
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -746,6 +813,7 @@ fun TaskDetailScreen(
         DetailSection("Why I'm avoiding it", task.avoidanceReason)
         DetailSection("Benefits", task.benefits)
 
+        // Subtasks Section
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(
@@ -753,18 +821,306 @@ fun TaskDetailScreen(
             )
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text(
-                    "Action Plan",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                DetailSection("First subtask", task.subtask)
-                DetailSection("Time needed", "${task.timeEstimate} minutes")
-                DetailSection("Reward", task.reward)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                ) {
+                    Text(
+                        "Subtasks",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    val completed = subtasks.count { it.isCompleted }
+                    val total = subtasks.size
+                    Text(
+                        "$completed / $total",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                    )
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+
+                if (subtasks.isEmpty()) {
+                    Text(
+                        "No subtasks yet",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.6f)
+                    )
+                } else {
+                    subtasks.forEach { subtask ->
+                        val isNextIncomplete = !subtask.isCompleted &&
+                            subtasks.filter { !it.isCompleted }.minByOrNull { it.orderIndex } == subtask
+
+                        SubtaskRow(
+                            subtask = subtask,
+                            isNextIncomplete = isNextIncomplete,
+                            onToggle = {
+                                if (!subtask.isCompleted) {
+                                    completedSubtask = subtask
+                                    showRewardDialog = true
+                                    viewModel.completeSubtask(subtask.id)
+                                }
+                            }
+                        )
+                        if (subtask != subtasks.last()) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                        }
+                    }
+                }
+
+                // Add Subtask Button
+                Spacer(modifier = Modifier.height(12.dp))
+                OutlinedButton(
+                    onClick = { showAddSubtaskDialog = true },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("+ Add Another Subtask")
+                }
             }
         }
     }
+
+    // Reward Dialog
+    if (showRewardDialog && completedSubtask != null) {
+        RewardDialog(
+            subtask = completedSubtask!!,
+            onDismiss = {
+                showRewardDialog = false
+                completedSubtask = null
+            }
+        )
+    }
+
+    // Add Subtask Dialog
+    if (showAddSubtaskDialog) {
+        AddSubtaskDialog(
+            onDismiss = { showAddSubtaskDialog = false },
+            onSave = { description, timeEstimate, reward ->
+                val nextOrderIndex = (subtasks.maxOfOrNull { it.orderIndex } ?: -1) + 1
+                viewModel.insertSubtask(
+                    Subtask(
+                        taskId = task.id,
+                        description = description,
+                        timeEstimate = timeEstimate,
+                        reward = reward,
+                        isCompleted = false,
+                        orderIndex = nextOrderIndex
+                    )
+                )
+                showAddSubtaskDialog = false
+            }
+        )
+    }
+}
+
+@Composable
+fun SubtaskRow(
+    subtask: Subtask,
+    isNextIncomplete: Boolean,
+    onToggle: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isNextIncomplete) {
+                MaterialTheme.colorScheme.secondaryContainer
+            } else {
+                MaterialTheme.colorScheme.surface
+            }
+        ),
+        border = if (isNextIncomplete) {
+            androidx.compose.foundation.BorderStroke(2.dp, MaterialTheme.colorScheme.secondary)
+        } else null
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(enabled = !subtask.isCompleted) { onToggle() }
+                .padding(12.dp),
+            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+        ) {
+            Checkbox(
+                checked = subtask.isCompleted,
+                onCheckedChange = { if (!subtask.isCompleted) onToggle() },
+                enabled = !subtask.isCompleted
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = subtask.description,
+                    style = MaterialTheme.typography.bodyLarge,
+                    textDecoration = if (subtask.isCompleted) androidx.compose.ui.text.style.TextDecoration.LineThrough else null,
+                    color = if (subtask.isCompleted) {
+                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                    } else {
+                        MaterialTheme.colorScheme.onSurface
+                    }
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text(
+                        text = "⏱️ ${subtask.timeEstimate} min",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (subtask.isCompleted) {
+                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+                        } else {
+                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                        }
+                    )
+                    Text(
+                        text = "🎁 ${subtask.reward}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (subtask.isCompleted) {
+                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+                        } else {
+                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                        }
+                    )
+                }
+                if (isNextIncomplete) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "👉 Current step",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.secondary,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun RewardDialog(
+    subtask: Subtask,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = "🎉 Subtask Complete!",
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
+            )
+        },
+        text = {
+            Column(
+                horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = "You completed:",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = subtask.description,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer
+                    )
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = "Your Reward:",
+                            style = MaterialTheme.typography.labelMedium
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "🎁 ${subtask.reward}",
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = onDismiss,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Awesome!")
+            }
+        }
+    )
+}
+
+@Composable
+fun AddSubtaskDialog(
+    onDismiss: () -> Unit,
+    onSave: (description: String, timeEstimate: String, reward: String) -> Unit
+) {
+    var description by remember { mutableStateOf("") }
+    var timeEstimate by remember { mutableStateOf("") }
+    var reward by remember { mutableStateOf("") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text("Add New Subtask")
+        },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                OutlinedTextField(
+                    value = description,
+                    onValueChange = { description = it },
+                    label = { Text("Subtask Description") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = false,
+                    minLines = 2,
+                    maxLines = 4
+                )
+                OutlinedTextField(
+                    value = timeEstimate,
+                    onValueChange = { timeEstimate = it },
+                    label = { Text("Time Estimate (minutes)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+                OutlinedTextField(
+                    value = reward,
+                    onValueChange = { reward = it },
+                    label = { Text("Reward") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    if (description.isNotBlank() && timeEstimate.isNotBlank() && reward.isNotBlank()) {
+                        onSave(description, timeEstimate, reward)
+                    }
+                },
+                enabled = description.isNotBlank() && timeEstimate.isNotBlank() && reward.isNotBlank()
+            ) {
+                Text("Add")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
 }
 
 @Composable
@@ -787,12 +1143,24 @@ fun DetailSection(label: String, content: String) {
 }
 
 @Composable
-fun Next24HoursSummary(tasks: List<Task>) {
-    val totalMinutes = tasks.sumOf {
-        it.timeEstimate.toIntOrNull() ?: 0
+fun Next24HoursSummary(tasks: List<Task>, viewModel: TaskViewModel) {
+    // Collect subtasks for all tasks
+    val allSubtasksMap = tasks.associate { task ->
+        task.id to viewModel.getSubtasksForTask(task.id).collectAsState(initial = emptyList()).value
     }
+
+    // Calculate total time from incomplete subtasks
+    val totalMinutes = allSubtasksMap.values.flatten()
+        .filter { !it.isCompleted }
+        .sumOf { it.timeEstimate.toIntOrNull() ?: 0 }
+
     val totalHours = totalMinutes / 60.0
     val percentageOfDay = (totalMinutes / (24.0 * 60.0) * 100).coerceAtMost(100.0)
+
+    // Count tasks with incomplete subtasks
+    val tasksWithIncompleteSubtasks = allSubtasksMap.count { (_, subtasks) ->
+        subtasks.any { !it.isCompleted }
+    }
 
     Card(
         modifier = Modifier
@@ -864,7 +1232,11 @@ fun Next24HoursSummary(tasks: List<Task>) {
                 Spacer(modifier = Modifier.height(4.dp))
 
                 Text(
-                    text = "${tasks.size} task${if (tasks.size != 1) "s" else ""} planned",
+                    text = if (tasksWithIncompleteSubtasks > 0) {
+                        "$tasksWithIncompleteSubtasks task${if (tasksWithIncompleteSubtasks != 1) "s" else ""} with incomplete subtasks"
+                    } else {
+                        "All subtasks complete!"
+                    },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
                 )

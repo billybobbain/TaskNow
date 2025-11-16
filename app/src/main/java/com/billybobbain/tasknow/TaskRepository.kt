@@ -50,3 +50,40 @@ class LocationRepository(private val locationDao: LocationDao) {
         return locationDao.getLocationById(id)
     }
 }
+
+class SubtaskRepository(private val subtaskDao: SubtaskDao) {
+    fun getSubtasksForTask(taskId: String): Flow<List<Subtask>> {
+        return subtaskDao.getSubtasksForTask(taskId)
+    }
+
+    suspend fun getNextIncompleteSubtask(taskId: String): Subtask? {
+        return subtaskDao.getNextIncompleteSubtask(taskId)
+    }
+
+    suspend fun getSubtaskCount(taskId: String): Int {
+        return subtaskDao.getSubtaskCount(taskId)
+    }
+
+    suspend fun getCompletedSubtaskCount(taskId: String): Int {
+        return subtaskDao.getCompletedSubtaskCount(taskId)
+    }
+
+    suspend fun insert(subtask: Subtask) {
+        subtaskDao.insertSubtask(subtask)
+    }
+
+    suspend fun update(subtask: Subtask) {
+        subtaskDao.updateSubtask(subtask)
+    }
+
+    suspend fun delete(subtask: Subtask) {
+        subtaskDao.deleteSubtask(subtask)
+    }
+
+    suspend fun completeSubtask(subtaskId: String) {
+        val subtask = subtaskDao.getSubtaskById(subtaskId)
+        subtask?.let {
+            subtaskDao.updateSubtask(it.copy(isCompleted = true))
+        }
+    }
+}
