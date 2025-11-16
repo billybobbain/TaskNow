@@ -99,13 +99,27 @@ fun TaskPlannerApp(viewModel: TaskViewModel) {
                 modifier = Modifier.padding(padding),
                 existingTask = editingTask,
                 viewModel = viewModel,
-                onSave = { task ->
+                onSave = { task, templateSubtasks ->
                     if (editingTask != null) {
                         viewModel.update(task)
                     } else {
                         viewModel.insert(task)
-                        // Create the first subtask for new tasks
-                        if (task.subtask.isNotBlank()) {
+                        // Create subtasks from template if provided
+                        if (templateSubtasks.isNotEmpty()) {
+                            templateSubtasks.forEachIndexed { index, subtaskData ->
+                                viewModel.insertSubtask(
+                                    Subtask(
+                                        taskId = task.id,
+                                        description = subtaskData.description,
+                                        timeEstimate = subtaskData.timeEstimate,
+                                        reward = subtaskData.reward,
+                                        isCompleted = false,
+                                        orderIndex = index
+                                    )
+                                )
+                            }
+                        } else if (task.subtask.isNotBlank()) {
+                            // Fallback: Create single subtask from old fields
                             viewModel.insertSubtask(
                                 Subtask(
                                     taskId = task.id,
@@ -596,7 +610,7 @@ fun TaskFormScreen(
     modifier: Modifier = Modifier,
     existingTask: Task?,
     viewModel: TaskViewModel,
-    onSave: (Task) -> Unit,
+    onSave: (Task, List<SubtaskTemplateData>) -> Unit,
     onCancel: () -> Unit
 ) {
     var taskName by remember { mutableStateOf(existingTask?.taskName ?: "") }
@@ -609,6 +623,8 @@ fun TaskFormScreen(
     var selectedLocationId by remember { mutableStateOf(existingTask?.locationId) }
     var isRepeating by remember { mutableStateOf(existingTask?.isRepeating ?: false) }
     var showLocationPicker by remember { mutableStateOf(false) }
+    var showTemplatePicker by remember { mutableStateOf(false) }
+    var pendingSubtasks by remember { mutableStateOf<List<SubtaskTemplateData>>(emptyList()) }
 
     val locations by viewModel.allLocations.collectAsState(initial = emptyList())
 
@@ -624,6 +640,16 @@ fun TaskFormScreen(
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold
         )
+
+        // Use Template Button (only show for new tasks)
+        if (existingTask == null) {
+            OutlinedButton(
+                onClick = { showTemplatePicker = true },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("📋 Use Template")
+            }
+        }
 
         QuestionField(
             question = "What task are you currently procrastinating on?",
@@ -756,7 +782,8 @@ fun TaskFormScreen(
                                 reward = reward,
                                 locationId = selectedLocationId,
                                 isRepeating = isRepeating
-                            )
+                            ),
+                            pendingSubtasks
                         )
                     }
                 },
@@ -766,6 +793,34 @@ fun TaskFormScreen(
                 Text("Save")
             }
         }
+    }
+
+    // Template Picker Dialog
+    if (showTemplatePicker) {
+        TemplatePickerDialog(
+            onTemplateSelected = { template ->
+                // Apply template to form fields
+                taskName = template.taskName
+                description = template.description
+                avoidanceReason = template.avoidanceReason
+                benefits = template.benefits
+                isRepeating = template.isRepeating
+
+                // Store subtasks to be created when task is saved
+                pendingSubtasks = template.subtasks
+
+                // Fill in first subtask in old fields for backwards compatibility
+                if (template.subtasks.isNotEmpty()) {
+                    val firstSubtask = template.subtasks.first()
+                    subtask = firstSubtask.description
+                    timeEstimate = firstSubtask.timeEstimate
+                    reward = firstSubtask.reward
+                }
+
+                showTemplatePicker = false
+            },
+            onDismiss = { showTemplatePicker = false }
+        )
     }
 }
 
@@ -1617,3 +1672,137 @@ fun InfoChip(text: String) {
         )
     }
 }
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun TemplatePickerDialog(
+    onTemplateSelected: (TaskTemplate) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val categories = TaskTemplates.getAvailableCategories()
+    var selectedCategory by remember { mutableStateOf<TaskTemplateCategory?>(null) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = if (selectedCategory == null) "Choose Template Category" else selectedCategory!!.displayName,
+                style = MaterialTheme.typography.headlineSmall
+            )
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                if (selectedCategory == null) {
+                    // Show categories
+                    categories.forEach { category ->
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { selectedCategory = category },
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.primaryContainer
+                            )
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                            ) {
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = category.emoji,
+                                        style = MaterialTheme.typography.headlineMedium
+                                    )
+                                    Text(
+                                        text = category.displayName,
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                                val templateCount = TaskTemplates.getTemplatesByCategory(category).size
+                                Text(
+                                    text = "$templateCount template${if (templateCount != 1) "s" else ""}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                                )
+                            }
+                        }
+                    }
+                } else {
+                    // Show templates in selected category
+                    val templates = TaskTemplates.getTemplatesByCategory(selectedCategory!!)
+                    templates.forEach { template ->
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    onTemplateSelected(template)
+                                },
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.secondaryContainer
+                            )
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Text(
+                                    text = template.name,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    text = template.taskName,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f)
+                                )
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                    modifier = Modifier.padding(top = 4.dp)
+                                ) {
+                                    Text(
+                                        text = "${template.subtasks.size} steps",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.6f)
+                                    )
+                                    if (template.isRepeating) {
+                                        Text(
+                                            text = "🔄 Repeating",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.6f)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            if (selectedCategory != null) {
+                TextButton(onClick = { selectedCategory = null }) {
+                    Text("← Back to Categories")
+                }
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
+}
+
