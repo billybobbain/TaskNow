@@ -1,6 +1,123 @@
 # TaskNow - Anti-Procrastination App
 
-## Latest Update - Multi-Step Subtasks & Repeating Tasks (November 16, 2025)
+## Latest Update - Task Templates (November 16, 2025)
+
+### Summary of Changes
+
+This update introduces a comprehensive task template system to help procrastinators get started faster. Users can now choose from 12 professionally crafted templates across 5 categories, each with pre-filled task details and multiple subtasks. This eliminates the "blank page paralysis" and provides excellent examples of how to break down common tasks.
+
+### New Features
+
+#### 1. Task Template System
+- **12 Built-In Templates**: Professionally crafted templates covering common procrastination scenarios
+- **5 Categories**: Health & Fitness, Home & Cleaning, Work & Productivity, Personal Care, and Learning
+- **Complete Pre-Population**: Every field automatically filled including task name, description, avoidance reasons, benefits, and all subtasks
+- **Future-Proof Architecture**: Designed to support "template packs" that can be added later
+
+![Template Categories](screenshots/template_categories.png)
+*Screenshot: Template category selection with emoji icons*
+
+#### 2. "Use Template" Button
+- **Prominent Placement**: Large button at top of task creation form
+- **Only for New Tasks**: Doesn't appear when editing existing tasks to avoid confusion
+- **One-Tap Access**: Instant access to template library
+- **Customizable**: All pre-filled fields can be edited before saving
+
+![Use Template Button](screenshots/use_template_button.png)
+*Screenshot: Task creation form with "Use Template" button*
+
+#### 3. Two-Level Template Picker
+- **Category Navigation**: First screen shows 5 categories with template counts
+- **Template Preview**: Second screen shows templates with step counts and repeating indicator
+- **Back Navigation**: Easy "← Back to Categories" button
+- **Visual Indicators**:
+  - Emoji icons for each category
+  - Step counts (e.g., "6 steps")
+  - 🔄 icon for repeating tasks
+  - Color-coded cards for easy scanning
+
+![Template Picker](screenshots/template_picker.png)
+*Screenshot: Template selection showing templates in a category*
+
+#### 4. Template Categories & Examples
+
+**🏋️ Health & Fitness (3 templates)**
+- Gym Workout - Complete workout routine with warm-up, cardio, and strength training
+- Morning Run - Energizing run with stretching and cool-down
+- Yoga Session - Full yoga practice from breathing to savasana
+
+**🏠 Home & Cleaning (3 templates)**
+- Clean Kitchen - Deep clean with counters, dishes, appliances, and floor
+- Do Laundry - Complete cycle from sorting to putting away
+- Weekly Room Reset - Bedroom organization and cleaning routine
+
+**💼 Work & Productivity (3 templates)**
+- Process Email Inbox - Get to inbox zero with systematic approach
+- Prepare for Important Meeting - Thorough preparation with research and practice
+- Start New Project - Overcome paralysis with structured project kickoff
+
+**🌟 Personal Care (2 templates)**
+- Morning Routine - Energizing start with hydration, hygiene, and mindfulness
+- Evening Wind-Down - Relaxing routine for better sleep
+
+**📚 Learning (1 template)**
+- Focused Study Session - Productive study with Pomodoro technique and active recall
+
+#### 5. Automatic Subtask Creation
+- **Multi-Step Tasks**: All template subtasks created automatically when task is saved
+- **Proper Ordering**: Subtasks maintain template sequence with orderIndex
+- **Time & Rewards Preserved**: Each subtask keeps its time estimate and reward
+- **Immediate Use**: Task ready to start working through steps right away
+
+#### 6. Smart Defaults
+- **Repeating Tasks Pre-Set**: Templates like workouts and routines have isRepeating=true
+- **Realistic Time Estimates**: Each subtask has practical time estimates
+- **Motivating Rewards**: Rewards designed to provide positive reinforcement
+- **Helpful Avoidance Reasons**: Pre-written to help users identify with the struggle
+
+### Technical Implementation
+
+#### New Files
+- `TaskTemplate.kt` - Template data classes, category enum, and 12 built-in templates
+  - `TaskTemplate` data class with all task and subtask information
+  - `SubtaskTemplateData` for individual subtask details
+  - `TaskTemplateCategory` enum with display names and emoji icons
+  - `TaskTemplates` object with template library and query methods
+
+#### Modified Files
+- `MainActivity.kt` - Added template picker UI and integration with task form
+  - Updated `TaskFormScreen` with "Use Template" button
+  - New `TemplatePickerDialog` composable for category/template selection
+  - Updated save logic to create subtasks from template
+  - Template application logic to populate all form fields
+
+#### Key Technologies
+- **Kotlin Data Classes**: Type-safe template definitions
+- **Enum Classes**: Strongly-typed categories with metadata
+- **Object Pattern**: Singleton for template library
+- **Two-Level Navigation**: Category → Template drill-down pattern
+- **State Management**: Template selection and field population
+
+### User Experience Improvements
+- **Eliminates Blank Page Paralysis**: Pre-filled examples show how to break down tasks
+- **Faster Task Creation**: One-tap template selection vs manual entry
+- **Educational**: Users learn good task breakdown patterns from templates
+- **Customizable**: Can edit any field before saving
+- **Professional Quality**: Well-written descriptions and realistic subtasks
+- **Future Expandable**: Architecture ready for template packs
+
+### Template Quality
+Each template includes:
+- **Relatable Task Names**: Clear, specific task descriptions
+- **Honest Avoidance Reasons**: Real reasons people procrastinate
+- **Compelling Benefits**: Motivating outcomes
+- **Logical Step Sequence**: Natural flow from start to completion
+- **Realistic Time Estimates**: Based on actual task completion times
+- **Positive Rewards**: Encouraging micro-celebrations
+
+---
+
+## Previous Update - Multi-Step Subtasks & Repeating Tasks (November 16, 2025)
 
 ### Summary of Changes
 
