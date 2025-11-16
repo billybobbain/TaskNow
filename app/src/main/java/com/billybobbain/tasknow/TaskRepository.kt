@@ -86,4 +86,8 @@ class SubtaskRepository(private val subtaskDao: SubtaskDao) {
             subtaskDao.updateSubtask(it.copy(isCompleted = true))
         }
     }
+
+    suspend fun resetAllSubtasks(taskId: String) {
+        subtaskDao.resetAllSubtasks(taskId)
+    }
 }

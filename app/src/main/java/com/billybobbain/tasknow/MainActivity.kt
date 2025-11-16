@@ -611,6 +611,7 @@ fun TaskFormScreen(
     var timeEstimate by remember { mutableStateOf(existingTask?.timeEstimate ?: "") }
     var reward by remember { mutableStateOf(existingTask?.reward ?: "") }
     var selectedLocationId by remember { mutableStateOf(existingTask?.locationId) }
+    var isRepeating by remember { mutableStateOf(existingTask?.isRepeating ?: false) }
     var showLocationPicker by remember { mutableStateOf(false) }
 
     val locations by viewModel.allLocations.collectAsState(initial = emptyList())
@@ -710,6 +711,30 @@ fun TaskFormScreen(
             )
         }
 
+        // Repeating Task Toggle
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Repeating Task",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "Task will reset when all subtasks are complete",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Switch(
+                checked = isRepeating,
+                onCheckedChange = { isRepeating = it }
+            )
+        }
+
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -733,7 +758,8 @@ fun TaskFormScreen(
                                 subtask = subtask,
                                 timeEstimate = timeEstimate,
                                 reward = reward,
-                                locationId = selectedLocationId
+                                locationId = selectedLocationId,
+                                isRepeating = isRepeating
                             )
                         )
                     }
@@ -857,9 +883,13 @@ fun TaskDetailScreen(
                             isNextIncomplete = isNextIncomplete,
                             onToggle = {
                                 if (!subtask.isCompleted) {
+                                    // Completing - show reward dialog
                                     completedSubtask = subtask
                                     showRewardDialog = true
                                     viewModel.completeSubtask(subtask.id)
+                                } else {
+                                    // Uncompleting - just toggle back
+                                    viewModel.updateSubtask(subtask.copy(isCompleted = false))
                                 }
                             }
                         )
@@ -886,6 +916,11 @@ fun TaskDetailScreen(
         RewardDialog(
             subtask = completedSubtask!!,
             onDismiss = {
+                // Check if all subtasks are complete and task is repeating
+                val allComplete = subtasks.all { it.isCompleted }
+                if (allComplete && task.isRepeating) {
+                    viewModel.resetAllSubtasks(task.id)
+                }
                 showRewardDialog = false
                 completedSubtask = null
             }
@@ -936,14 +971,13 @@ fun SubtaskRow(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable(enabled = !subtask.isCompleted) { onToggle() }
+                .clickable { onToggle() }
                 .padding(12.dp),
             verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
         ) {
             Checkbox(
                 checked = subtask.isCompleted,
-                onCheckedChange = { if (!subtask.isCompleted) onToggle() },
-                enabled = !subtask.isCompleted
+                onCheckedChange = { onToggle() }
             )
             Spacer(modifier = Modifier.width(8.dp))
             Column(modifier = Modifier.weight(1f)) {
