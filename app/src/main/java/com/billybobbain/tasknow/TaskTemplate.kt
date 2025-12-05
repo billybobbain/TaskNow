@@ -33,7 +33,8 @@ enum class TaskTemplateCategory(val displayName: String, val emoji: String) {
     HOME_CLEANING("Home & Cleaning", "🏠"),
     WORK_PRODUCTIVITY("Work & Productivity", "💼"),
     PERSONAL_CARE("Personal Care", "🌟"),
-    LEARNING("Learning", "📚")
+    LEARNING("Learning", "📚"),
+    SPORTS_BETTING("Sports Research & DFS", "🏈")
 }
 
 /**
@@ -267,6 +268,107 @@ object TaskTemplates {
                 SubtaskTemplateData("Take 5 minute break", "5", "Brain refreshed"),
                 SubtaskTemplateData("Practice problems or active recall", "25", "Applied knowledge"),
                 SubtaskTemplateData("Summarize key takeaways", "10", "Cemented understanding")
+            )
+        ),
+
+        // Sports Research & DFS Templates
+        TaskTemplate(
+            id = "daily_dfs_research",
+            name = "Daily DFS Lineup Research",
+            category = TaskTemplateCategory.SPORTS_BETTING,
+            taskName = "Research and build DFS lineup",
+            description = "Comprehensive research for daily fantasy sports lineup on DraftKings/Underdog",
+            avoidanceReason = "Overwhelming amount of data, easy to make quick emotional picks, analysis paralysis",
+            benefits = "Data-driven decisions, better ROI, avoid tilt picks, increased win rate",
+            isRepeating = true,
+            subtasks = listOf(
+                SubtaskTemplateData("Check injury reports and news", "10", "Know who's playing"),
+                SubtaskTemplateData("Review Vegas lines and totals", "10", "Identified high-scoring games"),
+                SubtaskTemplateData("Analyze recent player performance trends", "15", "Hot and cold players identified"),
+                SubtaskTemplateData("Check opponent defensive rankings", "10", "Found favorable matchups"),
+                SubtaskTemplateData("Review weather for outdoor games", "5", "Weather factors noted"),
+                SubtaskTemplateData("Build optimal lineup within salary cap", "15", "Lineup constructed"),
+                SubtaskTemplateData("Double-check lineup and submit", "5", "Confident in picks")
+            )
+        ),
+
+        TaskTemplate(
+            id = "prop_bet_research",
+            name = "Player Prop Research",
+            category = TaskTemplateCategory.SPORTS_BETTING,
+            taskName = "Research player props and find value",
+            description = "Analyze individual player prop bets and identify profitable opportunities",
+            avoidanceReason = "Too many props to choose from, hard to find edge, tempting to chase losses",
+            benefits = "Find +EV bets, avoid bad lines, disciplined betting approach, better bankroll management",
+            isRepeating = true,
+            subtasks = listOf(
+                SubtaskTemplateData("Scan available props across books", "10", "Props cataloged"),
+                SubtaskTemplateData("Identify 3-5 props of interest", "5", "Narrowed focus"),
+                SubtaskTemplateData("Check player recent stat trends", "15", "Trends identified"),
+                SubtaskTemplateData("Review matchup history and defense", "10", "Matchup edge found"),
+                SubtaskTemplateData("Compare lines across sportsbooks", "10", "Best odds identified"),
+                SubtaskTemplateData("Calculate unit sizes based on confidence", "5", "Bankroll allocated"),
+                SubtaskTemplateData("Place bets and track in spreadsheet", "5", "Bets logged")
+            )
+        ),
+
+        TaskTemplate(
+            id = "weekly_slate_analysis",
+            name = "Weekly Slate Analysis",
+            category = TaskTemplateCategory.SPORTS_BETTING,
+            taskName = "Analyze upcoming week's games",
+            description = "Review the full slate of games for the week and identify betting opportunities",
+            avoidanceReason = "Week seems far away, too much data to process, easier to wait until gameday",
+            benefits = "Early line value, better prep time, identify key matchups, avoid rushed decisions",
+            isRepeating = true,
+            subtasks = listOf(
+                SubtaskTemplateData("Review full week's schedule", "10", "Know all matchups"),
+                SubtaskTemplateData("Identify 5-7 games of interest", "10", "Focus narrowed"),
+                SubtaskTemplateData("Check opening lines and movement", "10", "Line value spotted"),
+                SubtaskTemplateData("Review team injury reports", "15", "Health status known"),
+                SubtaskTemplateData("Read expert analysis and picks", "15", "Multiple perspectives gathered"),
+                SubtaskTemplateData("Note key trends and angles", "10", "Edge identified"),
+                SubtaskTemplateData("Create shortlist for live bets", "5", "Week planned out")
+            )
+        ),
+
+        TaskTemplate(
+            id = "bankroll_review",
+            name = "Weekly Bankroll Review",
+            category = TaskTemplateCategory.SPORTS_BETTING,
+            taskName = "Review betting performance and adjust strategy",
+            description = "Analyze week's betting results and make strategic adjustments",
+            avoidanceReason = "Don't want to face losses, hard to be honest about mistakes, takes discipline",
+            benefits = "Improved long-term results, identify leaks, stay within budget, reduce tilt",
+            isRepeating = true,
+            subtasks = listOf(
+                SubtaskTemplateData("Calculate week's profit/loss", "5", "Know the numbers"),
+                SubtaskTemplateData("Review winning bets - what worked", "10", "Patterns identified"),
+                SubtaskTemplateData("Analyze losing bets - what failed", "10", "Mistakes recognized"),
+                SubtaskTemplateData("Calculate ROI and win rate", "10", "Performance measured"),
+                SubtaskTemplateData("Adjust unit sizes if needed", "5", "Bankroll protected"),
+                SubtaskTemplateData("Set limits for next week", "5", "Guardrails in place"),
+                SubtaskTemplateData("Document lessons learned", "5", "Growth tracked")
+            )
+        ),
+
+        TaskTemplate(
+            id = "game_deep_dive",
+            name = "Single Game Deep Dive",
+            category = TaskTemplateCategory.SPORTS_BETTING,
+            taskName = "Deep analysis of one key game",
+            description = "Thorough research on a single high-value game or matchup",
+            avoidanceReason = "Seems like overkill for one game, tempting to rely on gut feel, time-consuming",
+            benefits = "High-confidence play, edge over casual bettors, informed same-game parlay, reduced variance",
+            isRepeating = true,
+            subtasks = listOf(
+                SubtaskTemplateData("Study both teams' recent form", "15", "Team trends known"),
+                SubtaskTemplateData("Analyze head-to-head history", "10", "Matchup dynamics understood"),
+                SubtaskTemplateData("Review key player matchups", "15", "Individual battles identified"),
+                SubtaskTemplateData("Check coaching tendencies", "10", "Strategy insights gained"),
+                SubtaskTemplateData("Factor in situational spots", "10", "Context considered"),
+                SubtaskTemplateData("Build game script hypothesis", "10", "Flow predicted"),
+                SubtaskTemplateData("Identify best bet types for game", "10", "Plays selected")
             )
         )
     )

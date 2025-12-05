@@ -1,5 +1,6 @@
 plugins {
     id("com.google.devtools.ksp") version "2.0.21-1.0.27"
+    id("org.cyclonedx.bom") version "1.10.0"
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
@@ -87,4 +88,14 @@ dependencies {
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
+}
+
+tasks.cyclonedxBom {
+    setIncludeConfigs(listOf("releaseRuntimeClasspath"))
+    setOutputFormat("json")
+    setOutputName("bom")
+    setProjectType("application")
+    setSchemaVersion("1.4")
+    setComponentName("TaskNow")
+    setComponentVersion("1.0")
 }

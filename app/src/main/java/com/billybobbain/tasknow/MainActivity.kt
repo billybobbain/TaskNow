@@ -21,6 +21,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.animation.core.*
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Color
 import java.util.Locale
 
 class MainActivity : ComponentActivity() {
@@ -74,9 +78,11 @@ fun TaskPlannerApp(viewModel: TaskViewModel) {
                     onClick = {
                         editingTask = null
                         currentScreen = "form"
-                    }
+                    },
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
                 ) {
-                    Text("+", fontSize = 24.sp)
+                    Text("+", fontSize = 32.sp, fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -500,12 +506,24 @@ fun TaskCard(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text(
-                    text = task.taskName,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
                     modifier = Modifier.weight(1f)
-                )
+                ) {
+                    if (task.isRepeating) {
+                        Text(
+                            text = "↻",
+                            fontSize = 16.sp,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                    Text(
+                        text = task.taskName,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
                 IconButton(onClick = onDelete) {
                     Text("×", fontSize = 24.sp)
                 }
@@ -553,25 +571,13 @@ fun TaskCard(
 
             // Subtask progress
             if (totalCount > 0) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = if (nextSubtask != null) "Next: ${nextSubtask.description}" else "All subtasks complete! ✓",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = if (nextSubtask != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.tertiary,
-                        fontWeight = if (nextSubtask == null) FontWeight.Bold else FontWeight.Normal,
-                        modifier = Modifier.weight(1f)
-                    )
-                    Text(
-                        text = "$completedCount/$totalCount",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
+                Text(
+                    text = if (nextSubtask != null) "Next: ${nextSubtask.description}" else "All subtasks complete! ✓",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (nextSubtask != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.tertiary,
+                    fontWeight = if (nextSubtask == null) FontWeight.Bold else FontWeight.Normal,
+                    modifier = Modifier.fillMaxWidth()
+                )
 
                 if (nextSubtask != null) {
                     Spacer(modifier = Modifier.height(4.dp))
@@ -1084,6 +1090,25 @@ fun RewardDialog(
     subtask: Subtask,
     onDismiss: () -> Unit
 ) {
+    // Celebration animation for the reward card
+    val scale by animateFloatAsState(
+        targetValue = 1.1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(600, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "reward_scale"
+    )
+
+    val rewardCardColor by animateColorAsState(
+        targetValue = MaterialTheme.colorScheme.primaryContainer,
+        animationSpec = infiniteRepeatable(
+            animation = tween(600, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "reward_color"
+    )
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
@@ -1111,8 +1136,9 @@ fun RewardDialog(
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 Card(
+                    modifier = Modifier.scale(scale),
                     colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer
+                        containerColor = rewardCardColor
                     )
                 ) {
                     Column(
@@ -1708,12 +1734,11 @@ fun TemplatePickerDialog(
                                 containerColor = MaterialTheme.colorScheme.primaryContainer
                             )
                         ) {
-                            Row(
+                            Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(16.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                                 Row(
                                     horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -1729,12 +1754,23 @@ fun TemplatePickerDialog(
                                         fontWeight = FontWeight.Bold
                                     )
                                 }
+                                // Visual template count indicator
                                 val templateCount = TaskTemplates.getTemplatesByCategory(category).size
-                                Text(
-                                    text = "$templateCount template${if (templateCount != 1) "s" else ""}",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
-                                )
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                                    modifier = Modifier.padding(start = 44.dp) // Indent to align with text
+                                ) {
+                                    repeat(templateCount) {
+                                        androidx.compose.foundation.Canvas(
+                                            modifier = Modifier.size(6.dp)
+                                        ) {
+                                            drawCircle(
+                                                color = androidx.compose.ui.graphics.Color(0xFF4CAF50)
+                                            )
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
