@@ -14,6 +14,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -174,6 +175,8 @@ fun SettingsScreen(
     val settings by viewModel.settings.collectAsState(initial = null)
     val currentTheme = settings?.themeName ?: "Purple"
     val locations by viewModel.allLocations.collectAsState(initial = emptyList())
+    val context = LocalContext.current
+    var showMedicalDisclaimer by remember { mutableStateOf(false) }
 
     val themes = listOf("Purple", "Blue", "Green", "Orange", "Pink", "Teal")
 
@@ -229,6 +232,41 @@ fun SettingsScreen(
             }
         }
 
+        // Medical Disclaimer Section
+        Text(
+            text = "Medical Information",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(top = 16.dp)
+        )
+
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            onClick = { showMedicalDisclaimer = true }
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "View Medical Disclaimer",
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Text(
+                        text = "Important information about medical templates",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Text("⚕️", fontSize = 20.sp)
+            }
+        }
+
         // Theme Section
         Text(
             text = "Theme",
@@ -244,6 +282,14 @@ fun SettingsScreen(
                 onClick = { viewModel.saveTheme(theme) }
             )
         }
+    }
+
+    // Medical Disclaimer Dialog
+    if (showMedicalDisclaimer) {
+        MedicalDisclaimerDialog(
+            onDismiss = { showMedicalDisclaimer = false },
+            onAccept = { showMedicalDisclaimer = false }
+        )
     }
 }
 
@@ -518,6 +564,20 @@ fun TaskCard(
                             color = MaterialTheme.colorScheme.primary
                         )
                     }
+                    if (task.category != null) {
+                        val categoryEnum = try {
+                            TaskTemplateCategory.valueOf(task.category)
+                        } catch (e: IllegalArgumentException) {
+                            null
+                        }
+                        if (categoryEnum != null) {
+                            Text(
+                                text = categoryEnum.emoji,
+                                fontSize = 16.sp,
+                                color = MaterialTheme.colorScheme.tertiary
+                            )
+                        }
+                    }
                     Text(
                         text = task.taskName,
                         style = MaterialTheme.typography.titleMedium,
@@ -566,6 +626,17 @@ fun TaskCard(
                         )
                     }
                 }
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+
+            // Target days
+            if (task.targetDays != null) {
+                Text(
+                    text = "🎯 Target: ${task.targetDays} day${if (task.targetDays != 1) "s" else ""}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.secondary,
+                    fontWeight = FontWeight.Medium
+                )
                 Spacer(modifier = Modifier.height(8.dp))
             }
 
@@ -627,12 +698,28 @@ fun TaskFormScreen(
     var timeEstimate by remember { mutableStateOf(existingTask?.timeEstimate ?: "") }
     var reward by remember { mutableStateOf(existingTask?.reward ?: "") }
     var selectedLocationId by remember { mutableStateOf(existingTask?.locationId) }
+    var selectedCategory by remember {
+        mutableStateOf(
+            existingTask?.category?.let { categoryName ->
+                try {
+                    TaskTemplateCategory.valueOf(categoryName)
+                } catch (e: IllegalArgumentException) {
+                    null
+                }
+            }
+        )
+    }
     var isRepeating by remember { mutableStateOf(existingTask?.isRepeating ?: false) }
+    var targetDays by remember { mutableStateOf(existingTask?.targetDays?.toString() ?: "") }
     var showLocationPicker by remember { mutableStateOf(false) }
+    var showCategoryPicker by remember { mutableStateOf(false) }
     var showTemplatePicker by remember { mutableStateOf(false) }
+    var showMedicalDisclaimer by remember { mutableStateOf(false) }
+    var pendingTemplate by remember { mutableStateOf<TaskTemplate?>(null) }
     var pendingSubtasks by remember { mutableStateOf<List<SubtaskTemplateData>>(emptyList()) }
 
     val locations by viewModel.allLocations.collectAsState(initial = emptyList())
+    val settings by viewModel.settings.collectAsState(initial = null)
 
     Column(
         modifier = modifier
@@ -763,6 +850,58 @@ fun TaskFormScreen(
             )
         }
 
+        // Target Days
+        QuestionField(
+            question = "Target completion (days from now, optional)",
+            value = targetDays,
+            onValueChange = { targetDays = it.filter { char -> char.isDigit() } },
+            isNumeric = true
+        )
+
+        // Category Picker
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Text(
+                text = "Category (optional)",
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+
+            OutlinedButton(
+                onClick = { showCategoryPicker = true },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                ) {
+                    if (selectedCategory != null) {
+                        Text(selectedCategory!!.emoji, fontSize = 18.sp)
+                        Text(selectedCategory!!.displayName)
+                    } else {
+                        Text("No category selected")
+                    }
+                }
+            }
+
+            if (selectedCategory != null) {
+                TextButton(onClick = { selectedCategory = null }) {
+                    Text("Clear category")
+                }
+            }
+        }
+
+        if (showCategoryPicker) {
+            CategoryPickerDialog(
+                selectedCategory = selectedCategory,
+                onCategorySelected = { category ->
+                    selectedCategory = category
+                    showCategoryPicker = false
+                },
+                onDismiss = { showCategoryPicker = false }
+            )
+        }
+
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -787,7 +926,9 @@ fun TaskFormScreen(
                                 timeEstimate = timeEstimate,
                                 reward = reward,
                                 locationId = selectedLocationId,
-                                isRepeating = isRepeating
+                                category = selectedCategory?.name,
+                                isRepeating = isRepeating,
+                                targetDays = targetDays.toIntOrNull()
                             ),
                             pendingSubtasks
                         )
@@ -805,17 +946,61 @@ fun TaskFormScreen(
     if (showTemplatePicker) {
         TemplatePickerDialog(
             onTemplateSelected = { template ->
-                // Apply template to form fields
+                // Check if it's a medical template and user hasn't seen disclaimer
+                if (template.category == TaskTemplateCategory.MEDICAL &&
+                    settings?.hasSeenMedicalDisclaimer == false) {
+                    // Show disclaimer first
+                    pendingTemplate = template
+                    showMedicalDisclaimer = true
+                    showTemplatePicker = false
+                } else {
+                    // Apply template to form fields
+                    taskName = template.taskName
+                    description = template.description
+                    avoidanceReason = template.avoidanceReason
+                    benefits = template.benefits
+                    isRepeating = template.isRepeating
+                    selectedCategory = template.category
+
+                    // Store subtasks to be created when task is saved
+                    pendingSubtasks = template.subtasks
+
+                    // Fill in first subtask in old fields for backwards compatibility
+                    if (template.subtasks.isNotEmpty()) {
+                        val firstSubtask = template.subtasks.first()
+                        subtask = firstSubtask.description
+                        timeEstimate = firstSubtask.timeEstimate
+                        reward = firstSubtask.reward
+                    }
+
+                    showTemplatePicker = false
+                }
+            },
+            onDismiss = { showTemplatePicker = false }
+        )
+    }
+
+    // Medical Disclaimer Dialog
+    if (showMedicalDisclaimer && pendingTemplate != null) {
+        MedicalDisclaimerDialog(
+            onDismiss = {
+                showMedicalDisclaimer = false
+                pendingTemplate = null
+            },
+            onAccept = {
+                // Mark disclaimer as seen
+                viewModel.markMedicalDisclaimerSeen()
+
+                // Apply the pending template
+                val template = pendingTemplate!!
                 taskName = template.taskName
                 description = template.description
                 avoidanceReason = template.avoidanceReason
                 benefits = template.benefits
                 isRepeating = template.isRepeating
-
-                // Store subtasks to be created when task is saved
+                selectedCategory = template.category
                 pendingSubtasks = template.subtasks
 
-                // Fill in first subtask in old fields for backwards compatibility
                 if (template.subtasks.isNotEmpty()) {
                     val firstSubtask = template.subtasks.first()
                     subtask = firstSubtask.description
@@ -823,9 +1008,9 @@ fun TaskFormScreen(
                     reward = firstSubtask.reward
                 }
 
-                showTemplatePicker = false
-            },
-            onDismiss = { showTemplatePicker = false }
+                showMedicalDisclaimer = false
+                pendingTemplate = null
+            }
         )
     }
 }
@@ -835,7 +1020,8 @@ fun QuestionField(
     question: String,
     value: String,
     onValueChange: (String) -> Unit,
-    multiline: Boolean = false
+    multiline: Boolean = false,
+    isNumeric: Boolean = false
 ) {
     Column {
         Text(
@@ -849,7 +1035,13 @@ fun QuestionField(
             onValueChange = onValueChange,
             modifier = Modifier.fillMaxWidth(),
             minLines = if (multiline) 3 else 1,
-            maxLines = if (multiline) 5 else 1
+            maxLines = if (multiline) 5 else 1,
+            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                capitalization = if (isNumeric) androidx.compose.ui.text.input.KeyboardCapitalization.None
+                    else androidx.compose.ui.text.input.KeyboardCapitalization.Sentences,
+                keyboardType = if (isNumeric) androidx.compose.ui.text.input.KeyboardType.Number
+                    else androidx.compose.ui.text.input.KeyboardType.Text
+            )
         )
     }
 }
@@ -866,6 +1058,8 @@ fun TaskDetailScreen(
     var showRewardDialog by remember { mutableStateOf(false) }
     var completedSubtask by remember { mutableStateOf<Subtask?>(null) }
     var showAddSubtaskDialog by remember { mutableStateOf(false) }
+    var showEditSubtaskDialog by remember { mutableStateOf(false) }
+    var editingSubtask by remember { mutableStateOf<Subtask?>(null) }
 
     Column(
         modifier = modifier
@@ -948,6 +1142,10 @@ fun TaskDetailScreen(
                                     // Uncompleting - just toggle back
                                     viewModel.updateSubtask(subtask.copy(isCompleted = false))
                                 }
+                            },
+                            onLongClick = {
+                                editingSubtask = subtask
+                                showEditSubtaskDialog = true
                             }
                         )
                         if (subtask != subtasks.last()) {
@@ -1004,13 +1202,37 @@ fun TaskDetailScreen(
             }
         )
     }
+
+    // Edit Subtask Dialog
+    if (showEditSubtaskDialog && editingSubtask != null) {
+        EditSubtaskDialog(
+            subtask = editingSubtask!!,
+            onDismiss = {
+                showEditSubtaskDialog = false
+                editingSubtask = null
+            },
+            onSave = { description, timeEstimate, reward ->
+                viewModel.updateSubtask(
+                    editingSubtask!!.copy(
+                        description = description,
+                        timeEstimate = timeEstimate,
+                        reward = reward
+                    )
+                )
+                showEditSubtaskDialog = false
+                editingSubtask = null
+            }
+        )
+    }
 }
 
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 fun SubtaskRow(
     subtask: Subtask,
     isNextIncomplete: Boolean,
-    onToggle: () -> Unit
+    onToggle: () -> Unit,
+    onLongClick: () -> Unit = {}
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -1028,7 +1250,10 @@ fun SubtaskRow(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable { onToggle() }
+                .combinedClickable(
+                    onClick = { onToggle() },
+                    onLongClick = { onLongClick() }
+                )
                 .padding(12.dp),
             verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
         ) {
@@ -1196,21 +1421,30 @@ fun AddSubtaskDialog(
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = false,
                     minLines = 2,
-                    maxLines = 4
+                    maxLines = 4,
+                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                        capitalization = androidx.compose.ui.text.input.KeyboardCapitalization.Sentences
+                    )
                 )
                 OutlinedTextField(
                     value = timeEstimate,
-                    onValueChange = { timeEstimate = it },
+                    onValueChange = { timeEstimate = it.filter { char -> char.isDigit() } },
                     label = { Text("Time Estimate (minutes)") },
                     modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
+                    singleLine = true,
+                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                        keyboardType = androidx.compose.ui.text.input.KeyboardType.Number
+                    )
                 )
                 OutlinedTextField(
                     value = reward,
                     onValueChange = { reward = it },
                     label = { Text("Reward") },
                     modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
+                    singleLine = true,
+                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                        capitalization = androidx.compose.ui.text.input.KeyboardCapitalization.Sentences
+                    )
                 )
             }
         },
@@ -1224,6 +1458,80 @@ fun AddSubtaskDialog(
                 enabled = description.isNotBlank() && timeEstimate.isNotBlank() && reward.isNotBlank()
             ) {
                 Text("Add")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
+}
+
+@Composable
+fun EditSubtaskDialog(
+    subtask: Subtask,
+    onDismiss: () -> Unit,
+    onSave: (description: String, timeEstimate: String, reward: String) -> Unit
+) {
+    var description by remember { mutableStateOf(subtask.description) }
+    var timeEstimate by remember { mutableStateOf(subtask.timeEstimate) }
+    var reward by remember { mutableStateOf(subtask.reward) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text("Edit Subtask")
+        },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                OutlinedTextField(
+                    value = description,
+                    onValueChange = { description = it },
+                    label = { Text("Subtask Description") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = false,
+                    minLines = 2,
+                    maxLines = 4,
+                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                        capitalization = androidx.compose.ui.text.input.KeyboardCapitalization.Sentences
+                    )
+                )
+                OutlinedTextField(
+                    value = timeEstimate,
+                    onValueChange = { timeEstimate = it.filter { char -> char.isDigit() } },
+                    label = { Text("Time Estimate (minutes)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                        keyboardType = androidx.compose.ui.text.input.KeyboardType.Number
+                    )
+                )
+                OutlinedTextField(
+                    value = reward,
+                    onValueChange = { reward = it },
+                    label = { Text("Reward") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                        capitalization = androidx.compose.ui.text.input.KeyboardCapitalization.Sentences
+                    )
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    if (description.isNotBlank() && timeEstimate.isNotBlank() && reward.isNotBlank()) {
+                        onSave(description, timeEstimate, reward)
+                    }
+                },
+                enabled = description.isNotBlank() && timeEstimate.isNotBlank() && reward.isNotBlank()
+            ) {
+                Text("Save")
             }
         },
         dismissButton = {
@@ -1835,6 +2143,146 @@ fun TemplatePickerDialog(
             }
         },
         dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
+}
+
+@Composable
+fun MedicalDisclaimerDialog(
+    onDismiss: () -> Unit,
+    onAccept: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = "⚕️ Medical Disclaimer",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold
+            )
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    text = "This app provides task organization templates for common medical procedures.",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+
+                Text(
+                    text = "It is NOT medical advice and does not replace professional healthcare consultation.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Text(
+                    text = "• Always consult with qualified healthcare professionals about medical decisions",
+                    style = MaterialTheme.typography.bodySmall
+                )
+                Text(
+                    text = "• This app does not diagnose, treat, or prevent any medical condition",
+                    style = MaterialTheme.typography.bodySmall
+                )
+                Text(
+                    text = "• Templates are for informational and organizational purposes only",
+                    style = MaterialTheme.typography.bodySmall
+                )
+                Text(
+                    text = "• Follow your doctor's specific instructions, not general templates",
+                    style = MaterialTheme.typography.bodySmall
+                )
+                Text(
+                    text = "• In case of medical emergency, call 911 or your local emergency services",
+                    style = MaterialTheme.typography.bodySmall
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text(
+                    text = "By using the medical templates, you acknowledge this is an organizational tool only.",
+                    style = MaterialTheme.typography.bodySmall,
+                    fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
+                )
+            }
+        },
+        confirmButton = {
+            Button(onClick = onAccept) {
+                Text("I Understand")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
+}
+
+@Composable
+fun CategoryPickerDialog(
+    selectedCategory: TaskTemplateCategory?,
+    onCategorySelected: (TaskTemplateCategory) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val categories = TaskTemplateCategory.values().sortedBy { it.displayName }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = "Choose Category",
+                style = MaterialTheme.typography.headlineSmall
+            )
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                categories.forEach { category ->
+                    val isSelected = category == selectedCategory
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onCategorySelected(category) },
+                        colors = CardDefaults.cardColors(
+                            containerColor = if (isSelected)
+                                MaterialTheme.colorScheme.primaryContainer
+                            else
+                                MaterialTheme.colorScheme.surfaceVariant
+                        )
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = category.emoji,
+                                style = MaterialTheme.typography.headlineMedium
+                            )
+                            Text(
+                                text = category.displayName,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
             TextButton(onClick = onDismiss) {
                 Text("Cancel")
             }

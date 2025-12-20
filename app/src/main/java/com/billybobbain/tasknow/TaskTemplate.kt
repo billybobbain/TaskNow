@@ -30,11 +30,14 @@ data class SubtaskTemplateData(
  */
 enum class TaskTemplateCategory(val displayName: String, val emoji: String) {
     HEALTH_FITNESS("Health & Fitness", "🏋️"),
+    MEDICAL("Medical Procedures", "🏥"),
     HOME_CLEANING("Home & Cleaning", "🏠"),
     WORK_PRODUCTIVITY("Work & Productivity", "💼"),
     PERSONAL_CARE("Personal Care", "🌟"),
     LEARNING("Learning", "📚"),
-    SPORTS_BETTING("Sports Research & DFS", "🏈")
+    SPORTS_BETTING("Sports Research & DFS", "🏈"),
+    APP_DEVELOPER("App Development", "📱"),
+    CHRISTMAS("Christmas", "🎄")
 }
 
 /**
@@ -97,6 +100,220 @@ object TaskTemplates {
                 SubtaskTemplateData("Do sun salutations", "10", "Body is warming up"),
                 SubtaskTemplateData("Practice main poses", "20", "Deep stretches completed"),
                 SubtaskTemplateData("End with savasana", "7", "Completely relaxed")
+            )
+        ),
+
+        // Medical Procedures Templates
+        TaskTemplate(
+            id = "colonoscopy",
+            name = "Get a Colonoscopy",
+            category = TaskTemplateCategory.MEDICAL,
+            taskName = "Get a colonoscopy",
+            description = "Complete colonoscopy procedure for colon cancer screening",
+            avoidanceReason = "Fear of discomfort, anxiety about the prep process, putting off medical procedures, embarrassment",
+            benefits = "Peace of mind, early detection of colon cancer, preventive health maintenance, crossing off a major health milestone, potentially life-saving",
+            isRepeating = false,
+            subtasks = listOf(
+                SubtaskTemplateData("Schedule the appointment", "15", "Date set, commitment made"),
+                SubtaskTemplateData("Arrange transportation", "15", "Someone confirmed to drive you"),
+                SubtaskTemplateData("Get prep kit and instructions from pharmacy", "20", "Supplies in hand"),
+                SubtaskTemplateData("Buy prep day supplies (clear liquids, etc.)", "30", "Ready for prep day"),
+                SubtaskTemplateData("Clear your schedule for prep and procedure day", "10", "Time blocked off"),
+                SubtaskTemplateData("Do the bowel prep", "240", "Worst part done, almost there!"),
+                SubtaskTemplateData("Attend the procedure", "120", "Done! Peace of mind achieved")
+            )
+        ),
+
+        TaskTemplate(
+            id = "annual_physical",
+            name = "Annual Physical Exam",
+            category = TaskTemplateCategory.MEDICAL,
+            taskName = "Complete annual physical exam",
+            description = "Annual checkup with primary care doctor for preventive health",
+            avoidanceReason = "Feeling fine so seems unnecessary, worried they'll find something wrong, takes time out of schedule",
+            benefits = "Catch issues early, establish health baseline, update prescriptions if needed, peace of mind, responsible self-care",
+            isRepeating = false,
+            subtasks = listOf(
+                SubtaskTemplateData("Call to schedule appointment", "10", "Appointment on calendar"),
+                SubtaskTemplateData("Fast if bloodwork required", "480", "Ready for accurate results"),
+                SubtaskTemplateData("Gather insurance card and ID", "5", "Paperwork ready"),
+                SubtaskTemplateData("List current medications and questions", "10", "Prepared for visit"),
+                SubtaskTemplateData("Attend the appointment", "60", "Checkup complete!"),
+                SubtaskTemplateData("Follow up on any referrals or prescriptions", "15", "All tasks handled")
+            )
+        ),
+
+        TaskTemplate(
+            id = "dental_cleaning",
+            name = "Dental Cleaning",
+            category = TaskTemplateCategory.MEDICAL,
+            taskName = "Get dental cleaning and checkup",
+            description = "Six-month dental cleaning and oral health examination",
+            avoidanceReason = "Anxiety about the dentist, teeth are sensitive, costs money, afraid of cavities being found",
+            benefits = "Prevent cavities and gum disease, fresh clean feeling, catch problems early, maintain dental health, avoid bigger issues later",
+            isRepeating = false,
+            subtasks = listOf(
+                SubtaskTemplateData("Call dentist to schedule appointment", "10", "Appointment booked"),
+                SubtaskTemplateData("Check insurance coverage", "5", "Know what's covered"),
+                SubtaskTemplateData("Brush and floss well before appointment", "5", "Ready for cleaning"),
+                SubtaskTemplateData("Attend cleaning appointment", "60", "Teeth cleaned and checked"),
+                SubtaskTemplateData("Schedule next cleaning in 6 months", "5", "Future appointment set"),
+                SubtaskTemplateData("Follow any dentist recommendations", "15", "Dental health maintained")
+            )
+        ),
+
+        TaskTemplate(
+            id = "eye_exam",
+            name = "Eye Exam",
+            category = TaskTemplateCategory.MEDICAL,
+            taskName = "Get comprehensive eye exam",
+            description = "Annual eye exam to check vision and eye health",
+            avoidanceReason = "Vision seems fine, worried about needing glasses, costs money, takes time",
+            benefits = "Detect vision changes early, check for eye diseases, update prescription if needed, prevent eye strain headaches",
+            isRepeating = false,
+            subtasks = listOf(
+                SubtaskTemplateData("Find optometrist and schedule appointment", "15", "Appointment scheduled"),
+                SubtaskTemplateData("Check vision insurance benefits", "5", "Costs understood"),
+                SubtaskTemplateData("Bring current glasses if applicable", "2", "Ready for comparison"),
+                SubtaskTemplateData("Attend eye exam", "45", "Exam complete"),
+                SubtaskTemplateData("Order new glasses or contacts if needed", "20", "New eyewear on the way"),
+                SubtaskTemplateData("Schedule next annual exam", "5", "Future care planned")
+            )
+        ),
+
+        TaskTemplate(
+            id = "blood_work",
+            name = "Get Blood Work Done",
+            category = TaskTemplateCategory.MEDICAL,
+            taskName = "Complete lab work and blood tests",
+            description = "Get prescribed blood work and lab tests completed",
+            avoidanceReason = "Needle anxiety, have to fast beforehand, results might show something wrong, haven't made time",
+            benefits = "Important health information, catch issues early, doctor can adjust treatment, complete medical checkup",
+            isRepeating = false,
+            subtasks = listOf(
+                SubtaskTemplateData("Get lab order from doctor", "10", "Order in hand"),
+                SubtaskTemplateData("Find nearest lab location and hours", "10", "Location identified"),
+                SubtaskTemplateData("Fast overnight if required", "720", "Ready for accurate results"),
+                SubtaskTemplateData("Bring insurance card and ID to lab", "5", "Paperwork ready"),
+                SubtaskTemplateData("Complete blood draw at lab", "20", "Hardest part done!"),
+                SubtaskTemplateData("Follow up on results with doctor", "15", "Results reviewed and understood")
+            )
+        ),
+
+        TaskTemplate(
+            id = "pap_smear",
+            name = "Pap Smear/Pelvic Exam",
+            category = TaskTemplateCategory.MEDICAL,
+            taskName = "Get pap smear and pelvic exam",
+            description = "Routine cervical cancer screening and gynecological checkup",
+            avoidanceReason = "Embarrassment, feeling vulnerable, discomfort with the speculum, anxiety about the process",
+            benefits = "Early detection of cervical cancer, reproductive health check, peace of mind, preventive care",
+            isRepeating = false,
+            subtasks = listOf(
+                SubtaskTemplateData("Schedule appointment with gynecologist", "10", "Appointment booked"),
+                SubtaskTemplateData("Avoid intercourse/douching 48h before", "5", "Properly prepared"),
+                SubtaskTemplateData("Write down any symptoms or questions", "10", "Ready to discuss concerns"),
+                SubtaskTemplateData("Attend appointment (usually 10-20 min)", "45", "Exam complete!"),
+                SubtaskTemplateData("Wait for results (typically 1-2 weeks)", "5", "Results pending"),
+                SubtaskTemplateData("Schedule next screening in 3 years", "5", "Future care planned")
+            )
+        ),
+
+        TaskTemplate(
+            id = "mammogram",
+            name = "Mammogram Screening",
+            category = TaskTemplateCategory.MEDICAL,
+            taskName = "Get mammogram screening",
+            description = "Breast cancer screening mammogram",
+            avoidanceReason = "Fear of pain from compression, anxiety about potential bad news, embarrassment, putting it off",
+            benefits = "Early breast cancer detection, peace of mind, potentially life-saving, following recommended guidelines",
+            isRepeating = false,
+            subtasks = listOf(
+                SubtaskTemplateData("Schedule mammogram appointment", "10", "Date on calendar"),
+                SubtaskTemplateData("Schedule for week after period (less tender)", "5", "Optimal timing chosen"),
+                SubtaskTemplateData("Avoid caffeine day before (reduces tenderness)", "5", "Body prepared"),
+                SubtaskTemplateData("Don't wear deodorant/lotion day of", "2", "Ready for accurate imaging"),
+                SubtaskTemplateData("Attend mammogram (15-20 min)", "30", "Screening complete!"),
+                SubtaskTemplateData("Wait for results and follow up if needed", "10", "Results reviewed")
+            )
+        ),
+
+        TaskTemplate(
+            id = "prostate_exam",
+            name = "Prostate Exam (DRE)",
+            category = TaskTemplateCategory.MEDICAL,
+            taskName = "Get prostate screening exam",
+            description = "Digital rectal exam (DRE) for prostate cancer screening",
+            avoidanceReason = "Embarrassment, discomfort with the procedure, putting off an awkward exam, fear of results",
+            benefits = "Early prostate cancer detection, potentially life-saving, peace of mind, following screening guidelines",
+            isRepeating = false,
+            subtasks = listOf(
+                SubtaskTemplateData("Discuss screening options with doctor", "15", "Know what to expect"),
+                SubtaskTemplateData("Schedule appointment", "10", "Date set"),
+                SubtaskTemplateData("Remember it's quick (under 1 minute)", "2", "Mentally prepared"),
+                SubtaskTemplateData("Attend appointment and exam", "30", "Exam complete!"),
+                SubtaskTemplateData("Discuss results with doctor", "10", "Results understood"),
+                SubtaskTemplateData("Schedule follow-up if recommended", "5", "Next steps planned")
+            )
+        ),
+
+        TaskTemplate(
+            id = "sti_screening",
+            name = "STI Screening",
+            category = TaskTemplateCategory.MEDICAL,
+            taskName = "Get STI screening tests",
+            description = "Sexually transmitted infection screening and testing",
+            avoidanceReason = "Embarrassment about sexual history, fear of judgment, anxiety about results, stigma",
+            benefits = "Know your status, protect your health and partners, early treatment if needed, peace of mind",
+            isRepeating = false,
+            subtasks = listOf(
+                SubtaskTemplateData("Find confidential testing location", "10", "Location identified"),
+                SubtaskTemplateData("Schedule appointment or walk-in", "10", "Ready to go"),
+                SubtaskTemplateData("Remember testing is confidential and routine", "5", "Anxiety reduced"),
+                SubtaskTemplateData("Complete testing (blood/urine/swab)", "30", "Testing done!"),
+                SubtaskTemplateData("Get results (call or portal)", "10", "Results received"),
+                SubtaskTemplateData("Follow treatment plan if needed", "15", "Health protected"),
+                SubtaskTemplateData("Discuss prevention with partner", "20", "Communication complete")
+            )
+        ),
+
+        TaskTemplate(
+            id = "mri_ct_scan",
+            name = "MRI or CT Scan",
+            category = TaskTemplateCategory.MEDICAL,
+            taskName = "Complete MRI or CT imaging scan",
+            description = "Diagnostic imaging scan ordered by doctor",
+            avoidanceReason = "Claustrophobia in enclosed MRI machine, anxiety about radiation (CT), fear of what might be found",
+            benefits = "Accurate diagnosis, guide treatment decisions, rule out serious conditions, get answers",
+            isRepeating = false,
+            subtasks = listOf(
+                SubtaskTemplateData("Get imaging order from doctor", "10", "Order obtained"),
+                SubtaskTemplateData("Schedule scan at imaging center", "15", "Appointment made"),
+                SubtaskTemplateData("Follow prep instructions (fasting, etc.)", "30", "Properly prepared"),
+                SubtaskTemplateData("Remove all metal objects before scan", "5", "Ready for imaging"),
+                SubtaskTemplateData("Ask for anti-anxiety medication if needed", "10", "Calming support arranged"),
+                SubtaskTemplateData("Complete the scan", "45", "Scan finished!"),
+                SubtaskTemplateData("Follow up with doctor on results", "20", "Results discussed")
+            )
+        ),
+
+        TaskTemplate(
+            id = "surgery_prep",
+            name = "Prepare for Surgery",
+            category = TaskTemplateCategory.MEDICAL,
+            taskName = "Prepare for upcoming surgical procedure",
+            description = "Complete all pre-surgery requirements and preparations",
+            avoidanceReason = "Fear of anesthesia, anxiety about outcomes, worried about pain or complications, overwhelmed by prep",
+            benefits = "Best possible outcome, reduced complications, peace of mind, organized recovery, procedure gets done",
+            isRepeating = false,
+            subtasks = listOf(
+                SubtaskTemplateData("Attend pre-op consultation", "60", "Know what to expect"),
+                SubtaskTemplateData("Complete required lab work and tests", "45", "Medical clearance obtained"),
+                SubtaskTemplateData("Arrange time off work for recovery", "15", "Schedule cleared"),
+                SubtaskTemplateData("Arrange transportation and post-op help", "20", "Support lined up"),
+                SubtaskTemplateData("Prepare home for recovery (supplies, etc.)", "60", "Recovery space ready"),
+                SubtaskTemplateData("Follow pre-surgery instructions (fasting, etc.)", "30", "Properly prepared"),
+                SubtaskTemplateData("Attend surgery", "240", "Procedure complete!")
             )
         ),
 
@@ -369,6 +586,188 @@ object TaskTemplates {
                 SubtaskTemplateData("Factor in situational spots", "10", "Context considered"),
                 SubtaskTemplateData("Build game script hypothesis", "10", "Flow predicted"),
                 SubtaskTemplateData("Identify best bet types for game", "10", "Plays selected")
+            )
+        ),
+
+        // App Development Templates
+        TaskTemplate(
+            id = "play_store_release",
+            name = "Prepare for Play Store Release",
+            category = TaskTemplateCategory.APP_DEVELOPER,
+            taskName = "Launch app on Google Play Store",
+            description = "Complete all requirements to publish your app on the Play Store",
+            avoidanceReason = "Overwhelming number of steps, perfectionism paralysis, fear of rejection, easier to keep tweaking features",
+            benefits = "App reaches users, potential revenue, portfolio piece, sense of accomplishment, real-world feedback",
+            isRepeating = false,
+            subtasks = listOf(
+                SubtaskTemplateData("Create app icons (all required sizes)", "60", "Professional branding ready"),
+                SubtaskTemplateData("Take screenshots for all device types", "45", "Visual assets complete"),
+                SubtaskTemplateData("Write app description and feature list", "30", "Compelling store listing"),
+                SubtaskTemplateData("Create privacy policy page/document", "60", "Legal requirement met"),
+                SubtaskTemplateData("Generate signed release APK/AAB", "30", "Production build ready"),
+                SubtaskTemplateData("Create developer account (\$25 one-time)", "15", "Account active"),
+                SubtaskTemplateData("Fill out store listing details", "45", "All fields completed"),
+                SubtaskTemplateData("Submit for review", "10", "App submitted!"),
+                SubtaskTemplateData("Monitor review status and respond", "20", "Published!")
+            )
+        ),
+
+        TaskTemplate(
+            id = "privacy_policy",
+            name = "Write Privacy Policy",
+            category = TaskTemplateCategory.APP_DEVELOPER,
+            taskName = "Create app privacy policy",
+            description = "Write comprehensive privacy policy for your app",
+            avoidanceReason = "Legal jargon is intimidating, not sure what to include, boring administrative task",
+            benefits = "Play Store requirement met, user trust, legal protection, professional appearance",
+            isRepeating = false,
+            subtasks = listOf(
+                SubtaskTemplateData("List all data your app collects", "20", "Data inventory complete"),
+                SubtaskTemplateData("Document how data is used", "15", "Usage clearly defined"),
+                SubtaskTemplateData("Identify third-party services (ads, analytics)", "10", "Partners documented"),
+                SubtaskTemplateData("Use privacy policy generator tool", "30", "Draft policy created"),
+                SubtaskTemplateData("Review and customize generated policy", "30", "Policy personalized"),
+                SubtaskTemplateData("Host policy on website or app", "20", "Policy accessible"),
+                SubtaskTemplateData("Add policy link to app and store listing", "10", "Compliance complete")
+            )
+        ),
+
+        TaskTemplate(
+            id = "app_screenshots",
+            name = "Create Store Screenshots & Graphics",
+            category = TaskTemplateCategory.APP_DEVELOPER,
+            taskName = "Design app store visual assets",
+            description = "Create compelling screenshots and promotional graphics for app store",
+            avoidanceReason = "Design work is time-consuming, perfectionism, not a designer, hard to showcase features",
+            benefits = "Higher conversion rate, professional appearance, showcases best features, competitive advantage",
+            isRepeating = false,
+            subtasks = listOf(
+                SubtaskTemplateData("Identify 3-5 key features to showcase", "15", "Messaging focused"),
+                SubtaskTemplateData("Take clean screenshots on different devices", "30", "Raw assets captured"),
+                SubtaskTemplateData("Add captions/annotations to screenshots", "45", "Features highlighted"),
+                SubtaskTemplateData("Create feature graphic (1024x500)", "60", "Header banner ready"),
+                SubtaskTemplateData("Design promo graphic if needed", "45", "Marketing asset complete"),
+                SubtaskTemplateData("Optimize images for size and clarity", "20", "Assets optimized"),
+                SubtaskTemplateData("Upload to Play Store console", "15", "Visuals live!")
+            )
+        ),
+
+        TaskTemplate(
+            id = "app_analytics",
+            name = "Set Up App Analytics",
+            category = TaskTemplateCategory.APP_DEVELOPER,
+            taskName = "Implement analytics and crash reporting",
+            description = "Add analytics and error tracking to understand user behavior and fix crashes",
+            avoidanceReason = "Feels like extra work, worried about privacy implications, SDK integration seems complex",
+            benefits = "Understand how users interact, catch crashes early, data-driven decisions, improve retention",
+            isRepeating = false,
+            subtasks = listOf(
+                SubtaskTemplateData("Choose analytics service (Firebase, etc.)", "15", "Tool selected"),
+                SubtaskTemplateData("Create account and add app", "20", "Account configured"),
+                SubtaskTemplateData("Integrate SDK into project", "45", "SDK installed"),
+                SubtaskTemplateData("Add key event tracking", "30", "Important actions tracked"),
+                SubtaskTemplateData("Set up crash reporting", "30", "Crashes will be reported"),
+                SubtaskTemplateData("Update privacy policy for analytics", "20", "Privacy updated"),
+                SubtaskTemplateData("Test analytics in debug build", "20", "Confirmed working"),
+                SubtaskTemplateData("Deploy and monitor dashboard", "15", "Data flowing!")
+            )
+        ),
+
+        TaskTemplate(
+            id = "first_app_update",
+            name = "Ship First App Update",
+            category = TaskTemplateCategory.APP_DEVELOPER,
+            taskName = "Release first update after launch",
+            description = "Push your first post-launch update with bug fixes and improvements",
+            avoidanceReason = "App seems fine as-is, scared to break things, unsure about versioning, analyzing feedback is hard",
+            benefits = "Show users you're maintaining the app, fix reported issues, build user trust, improve ratings",
+            isRepeating = false,
+            subtasks = listOf(
+                SubtaskTemplateData("Review user feedback and crash reports", "30", "Issues identified"),
+                SubtaskTemplateData("Prioritize top 3-5 fixes/improvements", "15", "Focus areas chosen"),
+                SubtaskTemplateData("Implement fixes and test thoroughly", "120", "Updates coded and tested"),
+                SubtaskTemplateData("Increment version number appropriately", "5", "Version bumped"),
+                SubtaskTemplateData("Write release notes for users", "15", "Changelog ready"),
+                SubtaskTemplateData("Generate signed release build", "20", "Update package ready"),
+                SubtaskTemplateData("Upload to Play Store as update", "15", "Update submitted"),
+                SubtaskTemplateData("Monitor rollout and new crash reports", "20", "Update shipped!")
+            )
+        ),
+
+        TaskTemplate(
+            id = "update_github_pat",
+            name = "Update GitHub PAT",
+            category = TaskTemplateCategory.APP_DEVELOPER,
+            taskName = "Rotate GitHub Personal Access Token",
+            description = "Update expiring GitHub Personal Access Token before it breaks workflows",
+            avoidanceReason = "Seems complicated, worried about breaking things, ignoring expiration emails, not sure where tokens are used",
+            benefits = "Avoid broken git workflows, maintain CI/CD pipelines, security best practice, peace of mind",
+            isRepeating = false,
+            subtasks = listOf(
+                SubtaskTemplateData("Go to GitHub Settings > Developer Settings", "5", "Settings page open"),
+                SubtaskTemplateData("Navigate to Personal Access Tokens", "5", "Token page loaded"),
+                SubtaskTemplateData("Generate new token with same scopes", "10", "New token created"),
+                SubtaskTemplateData("Copy token immediately (shown once!)", "2", "Token safely copied"),
+                SubtaskTemplateData("Update in git credential manager", "10", "Local git updated"),
+                SubtaskTemplateData("Update in CI/CD secrets (GitHub Actions, etc.)", "15", "CI/CD still works"),
+                SubtaskTemplateData("Update in any automation scripts", "15", "Scripts updated"),
+                SubtaskTemplateData("Test git push/pull to verify", "5", "Confirmed working"),
+                SubtaskTemplateData("Delete old expired token", "5", "Cleanup complete!")
+            )
+        ),
+
+        // Christmas Templates
+        TaskTemplate(
+            id = "wrap_presents",
+            name = "Wrap All Presents",
+            category = TaskTemplateCategory.CHRISTMAS,
+            taskName = "Wrap All Christmas Presents",
+            description = "Get all your gifts wrapped and ready to go under the tree",
+            avoidanceReason = "Wrapping feels tedious and time-consuming, don't have supplies ready, worried about doing it poorly",
+            benefits = "Gifts look thoughtful and festive, saves time on Christmas morning, reduces holiday stress, satisfying to see everything done",
+            isRepeating = false,
+            subtasks = listOf(
+                SubtaskTemplateData("Gather wrapping supplies (paper, tape, scissors, tags)", "10", "Everything in one spot"),
+                SubtaskTemplateData("Sort gifts by recipient", "5", "Organized and ready"),
+                SubtaskTemplateData("Wrap first batch of gifts", "20", "Making great progress"),
+                SubtaskTemplateData("Wrap remaining gifts", "20", "Almost done!"),
+                SubtaskTemplateData("Create and attach gift tags", "10", "All presents wrapped and labeled!")
+            )
+        ),
+
+        TaskTemplate(
+            id = "holiday_cards",
+            name = "Send Holiday Cards",
+            category = TaskTemplateCategory.CHRISTMAS,
+            taskName = "Send Holiday Cards",
+            description = "Write and mail holiday cards to friends and family",
+            avoidanceReason = "Feels like a lot of work, addressing envelopes is boring, not sure what to write",
+            benefits = "Maintains relationships, spreads holiday cheer, people genuinely appreciate the thought, nice tradition",
+            isRepeating = false,
+            subtasks = listOf(
+                SubtaskTemplateData("Buy or find holiday cards", "15", "Cards ready to go"),
+                SubtaskTemplateData("Write out address list", "10", "Know who you're sending to"),
+                SubtaskTemplateData("Write personal messages in cards", "30", "Heartfelt messages complete"),
+                SubtaskTemplateData("Address and stamp envelopes", "15", "Ready for the mail"),
+                SubtaskTemplateData("Mail cards at post office", "10", "Holiday cheer sent!")
+            )
+        ),
+
+        TaskTemplate(
+            id = "bake_cookies",
+            name = "Bake Holiday Cookies",
+            category = TaskTemplateCategory.CHRISTMAS,
+            taskName = "Bake Holiday Cookies",
+            description = "Bake a batch of festive cookies for the season",
+            avoidanceReason = "Cleanup is messy, seems time-intensive, worried about them turning out poorly",
+            benefits = "Delicious treats to enjoy, fun activity, great for sharing with others, house smells amazing",
+            isRepeating = false,
+            subtasks = listOf(
+                SubtaskTemplateData("Get ingredients from store", "20", "Everything ready to bake"),
+                SubtaskTemplateData("Prepare workspace and gather tools", "10", "Kitchen set up"),
+                SubtaskTemplateData("Mix and bake first batch", "30", "First cookies in the oven"),
+                SubtaskTemplateData("Bake remaining batches", "30", "All cookies baked"),
+                SubtaskTemplateData("Decorate cookies", "20", "Beautiful festive cookies!")
             )
         )
     )

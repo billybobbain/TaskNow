@@ -9,6 +9,9 @@ interface SubtaskDao {
     @Query("SELECT * FROM subtasks WHERE taskId = :taskId ORDER BY orderIndex ASC")
     fun getSubtasksForTask(taskId: String): Flow<List<Subtask>>
 
+    @Query("SELECT * FROM subtasks WHERE taskId = :taskId ORDER BY orderIndex ASC")
+    suspend fun getSubtasksForTaskOnce(taskId: String): List<Subtask>
+
     @Query("SELECT * FROM subtasks WHERE id = :subtaskId")
     suspend fun getSubtaskById(subtaskId: String): Subtask?
 

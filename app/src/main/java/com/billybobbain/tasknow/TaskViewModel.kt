@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 class TaskViewModel(application: Application) : AndroidViewModel(application) {
@@ -122,5 +123,10 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
     // Settings
     fun saveTheme(themeName: String) = viewModelScope.launch {
         settingsRepository.saveSettings(Settings(themeName = themeName))
+    }
+
+    fun markMedicalDisclaimerSeen() = viewModelScope.launch {
+        val currentSettings = settings.first() ?: Settings()
+        settingsRepository.saveSettings(currentSettings.copy(hasSeenMedicalDisclaimer = true))
     }
 }

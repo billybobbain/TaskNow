@@ -21,6 +21,10 @@ class TaskRepository(private val taskDao: TaskDao) {
     suspend fun getTaskById(id: String): Task? {
         return taskDao.getTaskById(id)
     }
+
+    suspend fun getAllTasksOnce(): List<Task> {
+        return taskDao.getAllTasksOnce()
+    }
 }
 
 class SettingsRepository(private val settingsDao: SettingsDao) {
@@ -54,6 +58,10 @@ class LocationRepository(private val locationDao: LocationDao) {
 class SubtaskRepository(private val subtaskDao: SubtaskDao) {
     fun getSubtasksForTask(taskId: String): Flow<List<Subtask>> {
         return subtaskDao.getSubtasksForTask(taskId)
+    }
+
+    suspend fun getSubtasksForTaskOnce(taskId: String): List<Subtask> {
+        return subtaskDao.getSubtasksForTaskOnce(taskId)
     }
 
     suspend fun getNextIncompleteSubtask(taskId: String): Subtask? {

@@ -15,5 +15,7 @@ data class Task(
     val timeEstimate: String,
     val reward: String,
     val locationId: String? = null, // Reference to saved location, null if no location
-    val isRepeating: Boolean = false // If true, task resets when all subtasks complete
+    val category: String? = null, // TaskTemplateCategory enum name, null if no category
+    val isRepeating: Boolean = false, // If true, task resets when all subtasks complete
+    val targetDays: Int? = null // Target completion in days from now, null if not set
 )
