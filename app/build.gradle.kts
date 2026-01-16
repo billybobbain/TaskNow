@@ -77,6 +77,9 @@ dependencies {
     // OSMDroid for maps
     implementation("org.osmdroid:osmdroid-android:6.1.17")
 
+    // Drag-and-drop reorderable list
+    implementation("sh.calvin.reorderable:reorderable:2.3.3")
+
     // Existing compose dependencies...
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)

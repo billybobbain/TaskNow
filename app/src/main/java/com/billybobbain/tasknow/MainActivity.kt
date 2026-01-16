@@ -15,7 +15,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.*
+import sh.calvin.reorderable.ReorderableItem
+import sh.calvin.reorderable.rememberReorderableLazyListState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -1046,6 +1050,7 @@ fun QuestionField(
     }
 }
 
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 fun TaskDetailScreen(
     task: Task,
@@ -1060,6 +1065,17 @@ fun TaskDetailScreen(
     var showAddSubtaskDialog by remember { mutableStateOf(false) }
     var showEditSubtaskDialog by remember { mutableStateOf(false) }
     var editingSubtask by remember { mutableStateOf<Subtask?>(null) }
+
+    val lazyListState = androidx.compose.foundation.lazy.rememberLazyListState()
+    val reorderableState = rememberReorderableLazyListState(lazyListState) { from, to ->
+        // Reorder subtasks when dragged
+        val fromSubtask = subtasks[from.index]
+        val toSubtask = subtasks[to.index]
+
+        // Swap orderIndex values
+        viewModel.updateSubtask(fromSubtask.copy(orderIndex = toSubtask.orderIndex))
+        viewModel.updateSubtask(toSubtask.copy(orderIndex = fromSubtask.orderIndex))
+    }
 
     Column(
         modifier = modifier
@@ -1125,31 +1141,44 @@ fun TaskDetailScreen(
                         color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.6f)
                     )
                 } else {
-                    subtasks.forEach { subtask ->
-                        val isNextIncomplete = !subtask.isCompleted &&
-                            subtasks.filter { !it.isCompleted }.minByOrNull { it.orderIndex } == subtask
+                    LazyColumn(
+                        state = lazyListState,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height((subtasks.size * 100).dp), // Approximate height per item
+                    ) {
+                        items(subtasks.size, key = { index -> subtasks[index].id }) { index ->
+                            ReorderableItem(reorderableState, key = subtasks[index].id) { isDragging ->
+                                val item = subtasks[index]
+                                val isNextIncomplete = !item.isCompleted &&
+                                    subtasks.filter { !it.isCompleted }.minByOrNull { it.orderIndex } == item
 
-                        SubtaskRow(
-                            subtask = subtask,
-                            isNextIncomplete = isNextIncomplete,
-                            onToggle = {
-                                if (!subtask.isCompleted) {
-                                    // Completing - show reward dialog
-                                    completedSubtask = subtask
-                                    showRewardDialog = true
-                                    viewModel.completeSubtask(subtask.id)
-                                } else {
-                                    // Uncompleting - just toggle back
-                                    viewModel.updateSubtask(subtask.copy(isCompleted = false))
+                                SubtaskRow(
+                                    subtask = item,
+                                    isNextIncomplete = isNextIncomplete,
+                                    isDragging = isDragging,
+                                    onToggle = {
+                                        if (!item.isCompleted) {
+                                            // Completing - show reward dialog
+                                            completedSubtask = item
+                                            showRewardDialog = true
+                                            viewModel.completeSubtask(item.id)
+                                        } else {
+                                            // Uncompleting - just toggle back
+                                            viewModel.updateSubtask(item.copy(isCompleted = false))
+                                        }
+                                    },
+                                    onLongClick = {
+                                        editingSubtask = item
+                                        showEditSubtaskDialog = true
+                                    },
+                                    dragModifier = Modifier.longPressDraggableHandle()
+                                )
+
+                                if (index < subtasks.lastIndex) {
+                                    Spacer(modifier = Modifier.height(8.dp))
                                 }
-                            },
-                            onLongClick = {
-                                editingSubtask = subtask
-                                showEditSubtaskDialog = true
                             }
-                        )
-                        if (subtask != subtasks.last()) {
-                            Spacer(modifier = Modifier.height(8.dp))
                         }
                     }
                 }
@@ -1231,13 +1260,17 @@ fun TaskDetailScreen(
 fun SubtaskRow(
     subtask: Subtask,
     isNextIncomplete: Boolean,
+    isDragging: Boolean = false,
     onToggle: () -> Unit,
-    onLongClick: () -> Unit = {}
+    onLongClick: () -> Unit = {},
+    dragModifier: Modifier = Modifier
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = if (isNextIncomplete) {
+            containerColor = if (isDragging) {
+                MaterialTheme.colorScheme.tertiaryContainer
+            } else if (isNextIncomplete) {
                 MaterialTheme.colorScheme.secondaryContainer
             } else {
                 MaterialTheme.colorScheme.surface
@@ -1245,24 +1278,38 @@ fun SubtaskRow(
         ),
         border = if (isNextIncomplete) {
             androidx.compose.foundation.BorderStroke(2.dp, MaterialTheme.colorScheme.secondary)
-        } else null
+        } else null,
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = if (isDragging) 8.dp else 1.dp
+        )
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .combinedClickable(
-                    onClick = { onToggle() },
-                    onLongClick = { onLongClick() }
-                )
                 .padding(12.dp),
             verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
         ) {
+            // Drag handle icon
+            Icon(
+                imageVector = Icons.Default.Menu,
+                contentDescription = "Drag to reorder",
+                modifier = dragModifier
+                    .padding(end = 8.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
             Checkbox(
                 checked = subtask.isCompleted,
                 onCheckedChange = { onToggle() }
             )
             Spacer(modifier = Modifier.width(8.dp))
-            Column(modifier = Modifier.weight(1f)) {
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .combinedClickable(
+                        onClick = { onToggle() },
+                        onLongClick = { onLongClick() }
+                    )
+            ) {
                 Text(
                     text = subtask.description,
                     style = MaterialTheme.typography.bodyLarge,
