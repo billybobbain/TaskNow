@@ -21,7 +21,10 @@ import androidx.compose.material3.*
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 import androidx.compose.runtime.*
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -30,6 +33,11 @@ import androidx.compose.animation.core.*
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.Canvas
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import kotlin.math.sin
+import kotlin.random.Random
 import java.util.Locale
 
 class MainActivity : ComponentActivity() {
@@ -1060,11 +1068,13 @@ fun TaskDetailScreen(
     onBack: () -> Unit
 ) {
     val subtasks by viewModel.getSubtasksForTask(task.id).collectAsState(initial = emptyList())
+    val scope = rememberCoroutineScope()
     var showRewardDialog by remember { mutableStateOf(false) }
     var completedSubtask by remember { mutableStateOf<Subtask?>(null) }
     var showAddSubtaskDialog by remember { mutableStateOf(false) }
     var showEditSubtaskDialog by remember { mutableStateOf(false) }
     var editingSubtask by remember { mutableStateOf<Subtask?>(null) }
+    var showConfetti by remember { mutableStateOf(false) }
 
     val lazyListState = androidx.compose.foundation.lazy.rememberLazyListState()
     val reorderableState = rememberReorderableLazyListState(lazyListState) { from, to ->
@@ -1159,10 +1169,18 @@ fun TaskDetailScreen(
                                     isDragging = isDragging,
                                     onToggle = {
                                         if (!item.isCompleted) {
-                                            // Completing - show reward dialog
-                                            completedSubtask = item
-                                            showRewardDialog = true
+                                            // Completing - no dialog, just complete
                                             viewModel.completeSubtask(item.id)
+
+                                            // Check if all subtasks are now complete and task is repeating
+                                            scope.launch {
+                                                delay(100) // Brief delay to ensure completion is saved
+                                                val allComplete = subtasks.all { s -> s.isCompleted || s.id == item.id }
+                                                if (allComplete) {
+                                                    showConfetti = true
+                                                    if (task.isRepeating) viewModel.resetAllSubtasks(task.id)
+                                                }
+                                            }
                                         } else {
                                             // Uncompleting - just toggle back
                                             viewModel.updateSubtask(item.copy(isCompleted = false))
@@ -1209,6 +1227,11 @@ fun TaskDetailScreen(
                 completedSubtask = null
             }
         )
+    }
+
+    // Confetti celebration on final subtask completion
+    if (showConfetti) {
+        ConfettiOverlay(onFinished = { showConfetti = false })
     }
 
     // Add Subtask Dialog
@@ -2335,5 +2358,68 @@ fun CategoryPickerDialog(
             }
         }
     )
+}
+
+@Composable
+fun ConfettiOverlay(onFinished: () -> Unit) {
+    val colors = listOf(
+        Color(0xFFFF6B6B), Color(0xFFFFD93D), Color(0xFF6BCB77),
+        Color(0xFF4D96FF), Color(0xFFFF922B), Color(0xFFCC5DE8)
+    )
+    val particleCount = 60
+    val particles = remember {
+        List(particleCount) {
+            mapOf(
+                "x" to Random.nextFloat(),
+                "y" to Random.nextFloat() * -0.5f,
+                "size" to (6f + Random.nextFloat() * 8f),
+                "speed" to (0.003f + Random.nextFloat() * 0.005f),
+                "wobble" to (Random.nextFloat() * 8f),
+                "wobbleSpeed" to (0.03f + Random.nextFloat() * 0.04f),
+                "color" to Random.nextInt(colors.size).toFloat(),
+                "rotation" to Random.nextFloat() * 360f
+            )
+        }
+    }
+
+    val infiniteTransition = rememberInfiniteTransition(label = "confetti")
+    val tick by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(16, easing = LinearEasing)),
+        label = "tick"
+    )
+
+    var elapsed by remember { mutableFloatStateOf(0f) }
+    var lastTick by remember { mutableFloatStateOf(0f) }
+    elapsed += (tick - lastTick).let { if (it < 0) 1f + it else it } * 16f
+    lastTick = tick
+
+    val scope = rememberCoroutineScope()
+    LaunchedEffect(Unit) {
+        delay(2800)
+        onFinished()
+    }
+
+    val alpha = if (elapsed > 2000f) 1f - ((elapsed - 2000f) / 800f).coerceIn(0f, 1f) else 1f
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            particles.forEach { p ->
+                val progress = ((elapsed * (p["speed"] as Float)) % 1.5f).coerceIn(0f, 1.5f)
+                val x = (p["x"] as Float) * size.width +
+                        sin(elapsed * (p["wobbleSpeed"] as Float)) * (p["wobble"] as Float)
+                val y = (p["y"] as Float + progress) * size.height
+                if (y < 0 || y > size.height) return@forEach
+                val color = colors[(p["color"] as Float).toInt()].copy(alpha = alpha)
+                val sz = p["size"] as Float
+                drawRect(
+                    color = color,
+                    topLeft = Offset(x, y),
+                    size = Size(sz, sz * 0.5f)
+                )
+            }
+        }
+    }
 }
 
