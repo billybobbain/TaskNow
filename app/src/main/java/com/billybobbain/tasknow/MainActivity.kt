@@ -2366,16 +2366,16 @@ fun ConfettiOverlay(onFinished: () -> Unit) {
         Color(0xFFFF6B6B), Color(0xFFFFD93D), Color(0xFF6BCB77),
         Color(0xFF4D96FF), Color(0xFFFF922B), Color(0xFFCC5DE8)
     )
-    val particleCount = 60
+    val particleCount = 80
     val particles = remember {
         List(particleCount) {
             mapOf(
                 "x" to Random.nextFloat(),
-                "y" to Random.nextFloat() * -0.5f,
-                "size" to (6f + Random.nextFloat() * 8f),
-                "speed" to (0.003f + Random.nextFloat() * 0.005f),
-                "wobble" to (Random.nextFloat() * 8f),
-                "wobbleSpeed" to (0.03f + Random.nextFloat() * 0.04f),
+                "y" to Random.nextFloat() * -0.3f,
+                "size" to (18f + Random.nextFloat() * 22f),
+                "speed" to (0.0008f + Random.nextFloat() * 0.0012f),
+                "wobble" to (20f + Random.nextFloat() * 30f),
+                "wobbleSpeed" to (0.02f + Random.nextFloat() * 0.02f),
                 "color" to Random.nextInt(colors.size).toFloat(),
                 "rotation" to Random.nextFloat() * 360f
             )
@@ -2397,11 +2397,11 @@ fun ConfettiOverlay(onFinished: () -> Unit) {
 
     val scope = rememberCoroutineScope()
     LaunchedEffect(Unit) {
-        delay(2800)
+        delay(4000)
         onFinished()
     }
 
-    val alpha = if (elapsed > 2000f) 1f - ((elapsed - 2000f) / 800f).coerceIn(0f, 1f) else 1f
+    val alpha = if (elapsed > 3000f) 1f - ((elapsed - 3000f) / 1000f).coerceIn(0f, 1f) else 1f
 
     Box(modifier = Modifier.fillMaxSize()) {
         Canvas(modifier = Modifier.fillMaxSize()) {
