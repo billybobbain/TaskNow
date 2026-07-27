@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     id("com.google.devtools.ksp") version "2.0.21-1.0.27"
     id("org.cyclonedx.bom") version "1.10.0"
@@ -27,18 +29,30 @@ android {
         }
     }
 
+    val keystorePropertiesFile = file("keystore.properties")
+    val keystoreProperties = Properties()
+    val hasLocalKeystoreProperties = keystorePropertiesFile.exists()
+    if (hasLocalKeystoreProperties) {
+        keystoreProperties.load(keystorePropertiesFile.inputStream())
+    }
+    val hasEnvKeystore = System.getenv("KEYSTORE_FILE") != null
+    val canSignRelease = hasLocalKeystoreProperties || hasEnvKeystore
+
     signingConfigs {
         create("release") {
-            // For GitHub Actions (reads from environment variables)
-            val keystoreFile = System.getenv("KEYSTORE_FILE")
-            if (keystoreFile != null) {
-                storeFile = file(keystoreFile)
+            if (hasEnvKeystore) {
+                // For GitHub Actions (reads from environment variables)
+                storeFile = file(System.getenv("KEYSTORE_FILE"))
                 storePassword = System.getenv("KEYSTORE_PASSWORD")
                 keyAlias = System.getenv("KEY_ALIAS")
                 keyPassword = System.getenv("KEY_PASSWORD")
+            } else if (hasLocalKeystoreProperties) {
+                // For local/manual release builds (e.g. Play Console uploads)
+                storeFile = file(keystoreProperties.getProperty("storeFile"))
+                storePassword = keystoreProperties.getProperty("storePassword")
+                keyAlias = keystoreProperties.getProperty("keyAlias")
+                keyPassword = keystoreProperties.getProperty("keyPassword")
             }
-            // For local builds, you can create a keystore.properties file
-            // See setup instructions in the workflow comments
         }
     }
 
@@ -49,8 +63,8 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            // Only sign if keystore is available
-            if (System.getenv("KEYSTORE_FILE") != null) {
+            // Only sign if a keystore is available (env vars or local keystore.properties)
+            if (canSignRelease) {
                 signingConfig = signingConfigs.getByName("release")
             }
         }

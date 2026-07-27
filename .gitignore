@@ -15,4 +15,6 @@
 local.properties
 /.idea
 tasknow.keystore
+tasknow-release.jks
+keystore.properties
 .claude-notes.md
